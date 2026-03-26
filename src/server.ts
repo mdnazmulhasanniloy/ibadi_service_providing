@@ -3,6 +3,7 @@ import app from 'app.js';
 import { createServer, type Server } from 'http';
 import colors from 'colors';
 import initializeSocket from '@app/socket/index.js';
+import { defaultTask } from '@app/utils/defaultTask.js';
 
 let server: Server;
 const socketServer = createServer(app);
@@ -15,6 +16,8 @@ async function main() {
         `💫 Simple Server Listening on  http://${config?.ip}:${config.port} `,
       ),
     );
+
+    defaultTask();
   });
   io.listen(Number(config.socket_port));
   console.log(

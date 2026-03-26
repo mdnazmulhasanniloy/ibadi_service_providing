@@ -25,6 +25,10 @@ export async function defaultTask() {
         password: await HashPassword('112233'),
         role: 'admin',
         expireAt: null,
+        location: {
+          type: 'Point',
+          coordinates: [37.7749, -122.4194],
+        },
         verification: {
           create: {
             otp: 0,
@@ -39,15 +43,16 @@ export async function defaultTask() {
   if (!content) {
     await prisma.contents.create({
       data: {
-        refundPolicy: 'This is Refund policy page',
-        shippingPolicy: 'This is Shipping policy page',
-        aboutUs: 'This is About us page',
-        termsAndCondition: 'This is Terms and condition page',
-        privacyPolicy: 'This is privacy policy page',
-        location: '2972 Westheimer Rd. Santa Ana, Illinois 85486 ',
-        copyRight: 'UniStore © 2025, All Rights Reserved',
-        footerText:
-          'We have clothes that suits your style and which you’re proud to wear. From women to men.',
+        termsAndCondition:
+          'These are the terms and conditions of our service...',
+        privacyPolicy:
+          'We value your privacy and ensure your data is protected...',
+        refundPolicy: 'Refunds are processed within 7-10 business days...',
+        shippingPolicy: 'Orders are shipped within 3-5 business days...',
+        aboutUs: 'We are a company dedicated to providing quality products...',
+        location: 'Dhaka, Bangladesh',
+        copyRight: '© 2026 Your Company Name. All rights reserved.',
+        footerText: 'Thank you for visiting our website.',
       },
     });
   }

@@ -11,7 +11,7 @@ const capitalizeFirstLetter = text => {
 function updateMainRouteFile(folderName) {
   const routeFilePath = path.join('src', 'app', 'routes', 'routes.ts');
   let content = fs.readFileSync(routeFilePath, 'utf8');
-  const importLine = `import { ${folderName}Routes } from "../modules/${folderName}/${folderName}.route";`;
+  const importLine = `import { ${folderName}Routes } from "../module/${folderName}/${folderName}.route";`;
   // Add import line if missing
   if (!content.includes(importLine)) {
     content = content.replace(
