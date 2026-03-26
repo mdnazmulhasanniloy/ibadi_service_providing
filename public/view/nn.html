@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+  </head>
+  <body>
+    Hello world
+  </body>
+  <script>
+    (async () => {
+      const challengeBuffer = new Uint8Array(32);
+      window.crypto.getRandomValues(challengeBuffer);
+
+      const credentials = await navigator.credentials.create({
+        publicKey: {
+          challenge: challengeBuffer,
+
+          rp: {
+            name: 'Web Dev',
+            id: window.location.hostname,
+          },
+
+          user: {
+            id: new Uint8Array(16), // Random unique user ID ideally
+            name: 'test@gmail.com',
+            displayName: 'Nazmul Hasan',
+          },
+
+          pubKeyCredParams: [
+            { type: 'public-key', alg: -7 }, // ES256
+            { type: 'public-key', alg: -8 }, // EdDSA
+            { type: 'public-key', alg: -257 }, // RS256
+          ],
+
+          timeout: 60000,
+
+          authenticatorSelection: {
+            authenticatorAttachment: 'platform', // or 'cross-platform'
+            userVerification: 'preferred', // or 'required', 'discouraged'
+          },
+
+          attestation: 'none',
+        },
+      });
+
+      console.log('🚀 ~ credentials:', credentials);
+    })();
+  </script>
+</html>

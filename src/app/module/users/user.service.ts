@@ -5,7 +5,8 @@ import HashPassword from '@app/shared/hashPassword.js';
 import AppError from '@app/error/AppError.js';
 import pickQuery from '@app/utils/pickQuery.js';
 import { paginationHelper } from '@app/helpers/pagination.helpers.js';
-import type { Prisma, Role } from '../../../../generated/prisma/index.js';
+
+import type { Role, Prisma } from '../../../../generated/prisma/index.js';
 
 const create = async (payload: Prisma.UserCreateInput) => {
   try {
@@ -22,7 +23,7 @@ const create = async (payload: Prisma.UserCreateInput) => {
       },
     });
 
-    payload['password'] = await HashPassword(payload?.password);
+    payload['password'] = await HashPassword(payload?.password as string);
 
     if (isExist) {
       if (isExist.isDeleted) {
@@ -134,6 +135,10 @@ const getAll = async (query: Record<string, any>) => {
       },
       deviceHistory: true,
     },
+    include: {
+      workSchedule: true,
+      serviceProviderInfo: true,
+    },
   });
 
   const total = await prisma.user.count({
@@ -166,8 +171,12 @@ const getById = async (id: string) => {
           status: true,
         },
       },
-      deviceHistory: true,
       // address: true,
+    },
+    include: {
+      workSchedule: true,
+      serviceProviderInfo: true,
+      deviceHistory: true,
     },
   });
 
@@ -182,6 +191,8 @@ const update = async (id: string, payload: Prisma.UserUpdateInput) => {
       include: {
         verification: true,
         deviceHistory: true,
+        workSchedule: true,
+        serviceProviderInfo: true,
       },
     });
     return result;

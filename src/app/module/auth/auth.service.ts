@@ -1,10 +1,9 @@
- 
-import httpStatus from 'http-status';  
+import httpStatus from 'http-status';
 import type { Request } from 'express';
 import { UAParser } from 'ua-parser-js';
-import bcrypt from 'bcrypt'; 
+import bcrypt from 'bcrypt';
 import moment from 'moment';
-import path from 'path'; 
+import path from 'path';
 import fs from 'fs';
 import prisma from '@app/shared/prisma.js';
 import AppError from '@app/error/AppError.js';
@@ -12,7 +11,16 @@ import { createToken, isPasswordMatched, verifyToken } from './user.utils.js';
 import config from '@app/config/index.js';
 import { generateOtp } from '@app/utils/otpGenerator.js';
 import { sendEmail } from '@app/utils/mailSender.js';
-import type { IChangePassword, IJwtPayload, ILogin, IResetPassword } from './auth.interface.js';
+import type {
+  IChangePassword,
+  IJwtPayload,
+  ILogin,
+  IResetPassword,
+} from './auth.interface.js';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const login = async (payload: ILogin, req: Request) => {
   payload.email = payload?.email?.trim().toLowerCase();
@@ -44,7 +52,7 @@ const login = async (payload: ILogin, req: Request) => {
   //     );
   //   }
 
-  if (!(await isPasswordMatched(payload.password, user.password))) {
+  if (!(await isPasswordMatched(payload.password, user.password as string))) {
     throw new AppError(httpStatus.BAD_REQUEST, 'Password does not match');
   }
 
@@ -121,7 +129,9 @@ const changePassword = async (id: string, payload: IChangePassword) => {
     throw new AppError(httpStatus.NOT_FOUND, 'User not found');
   }
 
-  if (!(await isPasswordMatched(payload?.oldPassword, user.password))) {
+  if (
+    !(await isPasswordMatched(payload?.oldPassword, user.password as string))
+  ) {
     throw new AppError(httpStatus.FORBIDDEN, 'Old password does not match');
   }
   if (payload?.newPassword !== payload?.confirmPassword) {

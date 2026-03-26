@@ -10,6 +10,10 @@ import { sendEmail } from '@app/utils/mailSender.js';
 import config from '@app/config/index.js';
 import { status } from '../../../../generated/prisma/index.js';
 import prisma from '@app/shared/prisma.js';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const resendOtp = async (payload: { email: string }) => {
   try {
@@ -76,8 +80,8 @@ const resendOtp = async (payload: { email: string }) => {
       'Your One Time OTP',
       fs
         .readFileSync(otpEmailPath, 'utf8')
-        .replace('{{otp}}', otp)
-        .replace('{{email}}', user?.email),
+        .replace('{{otpCode}}', otp)
+        .replace('{{fullName}}', user?.name ?? ''),
     );
 
     return { token };

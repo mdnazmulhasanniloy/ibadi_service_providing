@@ -37,9 +37,9 @@ model Contents {
 
 model User {
   id          String   @id @default(auto()) @map("_id") @db.ObjectId
-  name        String
+  name        String?
   email       String   @unique
-  password    String
+  password    String?
   status      status   @default(active)
   role        Role     @default(user)
   profile     String?
@@ -51,9 +51,13 @@ model User {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
+
   verification     Verification? 
+  serviceProviderInfo     serviceProviderInfo? 
+  workSchedule     workSchedule[] 
   deviceHistory    DeviceHistory[]  
   notifications    Notification[]  
+  reviews    Reviews[]  
 }
 
 model DeviceHistory {
@@ -94,11 +98,100 @@ model Notification {
    user    User?     @relation(fields: [receiverId], references: [id]) 
 }
 
+model workSchedule {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId    String @db.ObjectId
+  day  Days  
+  startTime DateTime
+  endTime DateTime
+  status Boolean @default(true)  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+
+  user User @relation(fields: [userId], references: [id])
+
+ 
+}
+
+
+model serviceProviderInfo {
+  userId    String   @map("_id") @db.ObjectId
+  palliativeCare Boolean @default(false)
+  drivingLicense Boolean @default(false)
+  businessProfiles Boolean @default(false)
+  documents String 
+  perHourPrice Float
+  experience  YearsSkating @default(ZERO_TO_TWO)
+  qualifiedCarer Boolean @default(false) 
+
+
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@id([userId])
+}
+
+
+model Categories{
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+  name String @unique
+  image String 
+  isDeleted Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+
+model Reviews {
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+  rating Float 
+  review String
+  userId String @db.ObjectId
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+
+  user User @relation(fields: [userId], references: [id])
+ 
+  
+}
+
+
+model Bookings {
+  id String @id @map("_id") @default(auto()) @db.ObjectId
+  userId String @db.ObjectId
+  serviceProviderId String @db.ObjectId 
+  
+}
 
 // Enums 
 enum status {
   active
   blocked
+}
+
+enum YearsSkating {
+  ZERO_TO_TWO          @map("0-2")
+  THREE_TO_FIVE        @map("3-5")
+  SIX_TO_TEN           @map("6-10")
+  ELEVEN_TO_TWENTY     @map("11-20")
+  TWENTY_PLUS          @map("20+")
+}
+enum Days {
+  Mon
+  Tue
+  Wed  
+  Thu   
+  Fri   
+  Sat   
+  Sun  
 }
  
 enum Role {
@@ -106,4 +199,5 @@ enum Role {
   sub_admin
   supper_admin
   user
+  service_provider
 }

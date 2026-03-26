@@ -1,19 +1,22 @@
-import { Router } from 'express';   
+import { Router } from 'express';
 import { userRoutes } from '@app/module/users/users.routes.js';
 import { otpRoutes } from '@app/module/otp/otp.routes.js';
 import { authRoutes } from '@app/module/auth/auth.route.js';
 import { contentsRoutes } from '@app/module/contents/contents.route.js';
 import { notificationRoutes } from '@app/module/notification/notification.route.js';
-
- 
+import { workScheduleRoutes } from '@app/module/workSchedule/workSchedule.route.js';
 
 const router: Router = Router();
 
-const moduleRoutes = [ 
+const moduleRoutes = [
+  {
+    path: '/workSchedule',
+    route: workScheduleRoutes,
+  },
   {
     path: '/notifications',
     route: notificationRoutes,
-  }, 
+  },
   {
     path: '/users',
     route: userRoutes,

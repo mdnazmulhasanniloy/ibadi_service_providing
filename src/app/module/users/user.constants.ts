@@ -1,13 +1,19 @@
 export const USER_ROLE = {
-  super_admin: 'super_admin',
+  supper_admin: 'supper_admin',
   sub_admin: 'sub_admin',
   admin: 'admin',
   user: 'user',
-  vendor: 'vendor',
+  service_provider: 'service_provider',
 };
 
 export const gender = ['Male', 'Female', 'Others'];
-export const Role = ['admin', 'super_admin', 'sub_admin', 'user', 'vendor'];
+export const Role = [
+  'admin',
+  'sub_admin',
+  'supper_admin',
+  'user',
+  'service_provider',
+];
 
 export const userSearchableFields = ['shopId', 'email'];
 

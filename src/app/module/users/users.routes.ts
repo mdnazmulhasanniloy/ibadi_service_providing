@@ -1,6 +1,6 @@
 import parseData from '@app/middleware/parseData.js';
-import { Router } from 'express';  
-import multer, { memoryStorage } from 'multer'; 
+import { Router } from 'express';
+import multer, { memoryStorage } from 'multer';
 import { userController } from './user.controller.js';
 import { USER_ROLE } from './user.constants.js';
 import auth from '@app/middleware/auth.js';
@@ -21,8 +21,9 @@ router.patch(
   auth(
     USER_ROLE.admin,
     USER_ROLE.sub_admin,
-    USER_ROLE.super_admin,
+    USER_ROLE.supper_admin,
     USER_ROLE.user,
+    USER_ROLE.service_provider,
   ),
   upload.single('profile'),
   parseData(),
@@ -31,7 +32,7 @@ router.patch(
 
 router.patch(
   '/:id',
-  auth(USER_ROLE.admin, USER_ROLE.sub_admin, USER_ROLE.super_admin),
+  auth(USER_ROLE.admin, USER_ROLE.sub_admin, USER_ROLE.supper_admin),
   upload.single('profile'),
   parseData(),
   userController.updateUser,
@@ -42,15 +43,16 @@ router.delete(
   auth(
     USER_ROLE.admin,
     USER_ROLE.sub_admin,
-    USER_ROLE.super_admin,
+    USER_ROLE.supper_admin,
     USER_ROLE.user,
+    USER_ROLE.service_provider,
   ),
   userController.deleteMYAccount,
 );
 
 router.delete(
   '/:id',
-  auth(USER_ROLE.admin, USER_ROLE.sub_admin, USER_ROLE.super_admin),
+  auth(USER_ROLE.admin, USER_ROLE.sub_admin, USER_ROLE.supper_admin),
   userController.deleteUser,
 );
 
@@ -59,8 +61,9 @@ router.get(
   auth(
     USER_ROLE.admin,
     USER_ROLE.sub_admin,
-    USER_ROLE.super_admin,
+    USER_ROLE.supper_admin,
     USER_ROLE.user,
+    USER_ROLE.service_provider,
   ),
   userController.getMyProfile,
 );
