@@ -1,14 +1,17 @@
-import  compression from 'compression';
-import  cookieParser from 'cookie-parser';
-import express, { type Application ,type Request,type Response} from 'express';
+import compression from 'compression';
+import cookieParser from 'cookie-parser';
+import express, {
+  type Application,
+  type Request,
+  type Response,
+} from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import router from '@app/routes/routes.js';
 import notFound from '@app/middleware/notfound.js';
 import globalErrorHandler from '@app/middleware/globalErrorhandler.js';
 
-
-const app:Application = express();
+const app: Application = express();
 
 app.use(express.static('public'));
 app.set('view engine', 'ejs');
@@ -28,7 +31,6 @@ app.use(
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
   }),
 );
-
 
 app.use('/api/v1', router);
 

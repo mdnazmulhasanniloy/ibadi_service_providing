@@ -312,7 +312,7 @@ const readline = createInterface({
   output: process.stdout,
 });
 readline.question('Enter folder name: ', folderName => {
-  createFolderAndFiles('src/app/modules', folderName);
+  createFolderAndFiles('src/app/module', folderName);
   readline.close();
 });
 //# sourceMappingURL=generateFolder.js.map

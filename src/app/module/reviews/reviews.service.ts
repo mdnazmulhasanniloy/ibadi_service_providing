@@ -14,13 +14,7 @@ const createReviews = async (payload: Prisma.ReviewsCreateInput) => {
 
     const [review] = await prisma.$transaction([
       prisma.reviews.create({
-        data: {
-          rating: data.rating,
-          review: data.review,
-          user: { connect: { id: data.userId } },
-          // product: { connect: { id: data.productId } },
-          // order: { connect: { id: orderId } },
-        },
+        data: data,
       }),
       // prisma.orders.update({
       //   where: { id: orderId },

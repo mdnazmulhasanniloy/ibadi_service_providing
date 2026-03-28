@@ -5,11 +5,17 @@ import { authRoutes } from '@app/module/auth/auth.route.js';
 import { contentsRoutes } from '@app/module/contents/contents.route.js';
 import { notificationRoutes } from '@app/module/notification/notification.route.js';
 import { workScheduleRoutes } from '@app/module/workSchedule/workSchedule.route.js';
-import { categoryRoutes } from '@app/module/category/category.route.js';
+import { categoryRoutes } from '@app/module/category/category.route.js'; 
+import { bookingsRoutes } from '@app/module/bookings/bookings.route.js';
 
 const router: Router = Router();
 
 const moduleRoutes = [
+  {
+    path: "/bookings",
+    route: bookingsRoutes,
+  },
+ 
   {
     path: '/workSchedule',
     route: workScheduleRoutes,

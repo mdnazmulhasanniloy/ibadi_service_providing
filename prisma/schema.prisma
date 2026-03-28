@@ -60,6 +60,13 @@ model User {
   // reviews    Reviews[]  
   reviewsReceived Reviews[] @relation("UserReviews")
   reviewsGiven    Reviews[] @relation("AuthorReviews")
+  //bookings
+  bookings        Bookings[] @relation("UserBookings")
+  providerBookings Bookings[] @relation("ProviderBookings")
+  //message
+  sendMessages  Messages[] @relation("sender")
+  receiverMessages  Messages[] @relation("receiver")
+  participants Participants[]
 }
 
 model DeviceHistory {
@@ -89,7 +96,7 @@ model Verification {
 model Notification {
   id String @id @default(auto()) @map("_id") @db.ObjectId
   receiverId String? @db.ObjectId
-  referenceId String? @db.ObjectId 
+  bookingId String? @db.ObjectId 
   message String
   description String?
   isRead Boolean @default(false)
@@ -98,6 +105,7 @@ model Notification {
   updatedAt DateTime @updatedAt
 
    user    User?     @relation(fields: [receiverId], references: [id]) 
+   booking    Bookings?     @relation(fields: [bookingId], references: [id]) 
 }
 
 model workSchedule {
@@ -172,10 +180,83 @@ model Bookings {
   id String @id @map("_id") @default(auto()) @db.ObjectId
   userId String @db.ObjectId
   serviceProviderId String @db.ObjectId 
-  
+  startAt DateTime
+  endAt DateTime
+  totalAmount Float
+  location Json
+  status BookingStatus @default(requested)
+  isPayed Boolean @default(false)  
+  isDeleted Boolean @default(false)  
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user            User @relation("UserBookings", fields: [userId], references: [id])
+  serviceProvider User @relation("ProviderBookings", fields: [serviceProviderId], references: [id])
+  notifications Notification[]
+}
+
+
+model Chat {
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+  status String 
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+
+  participants Participants[]
+  messages Messages[]
+}
+
+model Participants {
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+  chatId String @db.ObjectId
+  userId String @db.ObjectId
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+
+  user User @relation(fields: [userId], references: [id])
+  chat Chat @relation(fields: [chatId], references: [id])
+
+}
+
+model Messages{
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+  text String
+  seen Boolean @default(false)
+  chatId String @db.ObjectId
+  senderId String @db.ObjectId
+  receiverId String @db.ObjectId
+
+  chat    Chat @relation( fields: [senderId], references: [id])
+  sender    User @relation("sender", fields: [senderId], references: [id])
+  receiver User @relation("receiver", fields: [receiverId], references: [id])
+
+  images Images[]
+
+}
+
+model Images {
+   id String @id @default(auto()) @map("_id") @db.ObjectId
+   url String 
+   messageId String? @db.ObjectId 
+   message Messages? @relation(fields: [messageId], references: [id])
+
 }
 
 // Enums 
+enum BookingStatus {
+  requested
+  accepted
+  confirmed
+  ongoing
+  compete
+  canceled
+}
+
 enum status {
   active
   blocked
