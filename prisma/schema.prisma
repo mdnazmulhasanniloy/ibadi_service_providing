@@ -226,7 +226,7 @@ model Bookings {
 
 model Chat {
   id String @id @default(auto()) @map("_id") @db.ObjectId
-  status String 
+  status CHAT_STATUS @default(pending) 
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -299,7 +299,11 @@ enum status {
   active
   blocked
 }
-
+enum CHAT_STATUS {
+ pending
+ accepted
+ blocked
+}
 enum YearsSkating {
   ZERO_TO_TWO          @map("0-2")
   THREE_TO_FIVE        @map("3-5")
