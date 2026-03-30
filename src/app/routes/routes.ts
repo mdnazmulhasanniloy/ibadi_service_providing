@@ -8,10 +8,15 @@ import { workScheduleRoutes } from '@app/module/workSchedule/workSchedule.route.
 import { categoryRoutes } from '@app/module/category/category.route.js';
 import { bookingsRoutes } from '@app/module/bookings/bookings.route.js';
 import { reviewsRoutes } from '@app/module/reviews/reviews.route.js';
+import { chatRoutes } from '@app/module/chat/chat.route.js';
 
 const router: Router = Router();
 
 const moduleRoutes = [
+  {
+    path: '/chat',
+    route: chatRoutes,
+  },
   {
     path: '/reviews',
     route: reviewsRoutes,
