@@ -87,6 +87,19 @@ const updateMyProfile = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+const serviceProfileInfo = catchAsync(async (req: Request, res: Response) => { 
+  const result = await userService.serviceProfileInfo(
+    req?.user?.userId,
+    req.body,
+  );
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'profile updated successfully',
+    data: result,
+  });
+});
+
 const deleteUser = catchAsync(async (req: Request, res: Response) => {
   const result = await userService.deleteUser(req.params.id as string);
   sendResponse(res, {
@@ -116,4 +129,5 @@ export const userController = {
   updateMyProfile,
   deleteUser,
   deleteMYAccount,
+  serviceProfileInfo, 
 };

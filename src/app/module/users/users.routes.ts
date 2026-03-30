@@ -4,10 +4,19 @@ import multer, { memoryStorage } from 'multer';
 import { userController } from './user.controller.js';
 import { USER_ROLE } from './user.constants.js';
 import auth from '@app/middleware/auth.js';
+import uploadMultiple from '@app/middleware/uploadMulti.js';
 
 const router: Router = Router();
 const storage = memoryStorage();
 const upload = multer({ storage });
+
+const userFiles: any[] = [
+  { name: 'images', maxCount: 5 },
+  { name: 'palliativeCare', maxCount: 1 },
+  { name: 'drivingLicense', maxCount: 1 },
+  { name: 'businessProfiles', maxCount: 1 },
+  { name: 'qualifiedCarer', maxCount: 1 },
+];
 
 router.post(
   '/',
@@ -25,9 +34,19 @@ router.patch(
     USER_ROLE.user,
     USER_ROLE.service_provider,
   ),
-  upload.single('profile'),
+  upload.fields(userFiles),
   parseData(),
+  uploadMultiple(userFiles),
   userController.updateMyProfile,
+);
+
+router.patch(
+  '/service-provider-info',
+  auth(USER_ROLE.service_provider),
+  upload.fields(userFiles),
+  parseData(),
+  uploadMultiple(userFiles),
+  userController.serviceProfileInfo,
 );
 
 router.patch(

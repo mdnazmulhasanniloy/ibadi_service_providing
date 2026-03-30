@@ -205,7 +205,7 @@ const forgotPassword = async (email: string) => {
     'Your reset password OTP is',
     fs
       .readFileSync(otpEmailPath, 'utf8')
-      .replace('{{otp}}', otp)
+      .replace('{{otpCode}}', otp)
       .replace('{{email}}', user?.email),
   );
   return { email, token };

@@ -66,7 +66,8 @@ model User {
   //message
   sendMessages  Messages[] @relation("sender")
   receiverMessages  Messages[] @relation("receiver")
-  participants Participants[]
+  participants Participants[] 
+
 }
 
 model DeviceHistory {
@@ -126,24 +127,46 @@ model workSchedule {
 
 
 model serviceProviderInfo {
-  userId    String   @map("_id") @db.ObjectId
-  palliativeCare Boolean @default(false)
-  drivingLicense Boolean @default(false)
-  businessProfiles Boolean @default(false)
-  documents String 
+  userId    String   @map("_id") @db.ObjectId 
+  palliativeCare String?
+  drivingLicense String?
+  businessProfiles String?
+  documents String?
   perHourPrice Float
   experience  YearsSkating @default(ZERO_TO_TWO)
-  qualifiedCarer Boolean @default(false) 
-
-
-
+  qualifiedCarer String?
+ 
+  
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
 
-  user User @relation(fields: [userId], references: [id])
+  user User @relation(fields: [userId], references: [id]) 
+   
+  images Images[]
+  specialistsIn SpecialistsIn[]
+  othersRequiredTasks OthersRequiredTasks[]
 
   @@id([userId])
+}
+
+model SpecialistsIn{
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+  userId String @db.ObjectId
+  categoryId String @db.ObjectId
+
+  serviceProviderInfo serviceProviderInfo @relation(fields: [userId], references: [userId]) 
+  category Categories @relation(fields: [categoryId], references: [id])
+
+}
+model OthersRequiredTasks{
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+  userId String @db.ObjectId
+  categoryId String @db.ObjectId
+
+   serviceProviderInfo serviceProviderInfo @relation(fields: [userId], references: [userId])
+  category Categories @relation(fields: [categoryId], references: [id])
+
 }
 
 
@@ -155,6 +178,10 @@ model Categories{
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+
+  specialistsIn SpecialistsIn[]
+  othersRequiredTasks OthersRequiredTasks[]
 }
 
 
@@ -221,21 +248,29 @@ model Participants {
   user User @relation(fields: [userId], references: [id])
   chat Chat @relation(fields: [chatId], references: [id])
 
+  @@unique([chatId, userId])
+
 }
 
 model Messages{
   id String @id @default(auto()) @map("_id") @db.ObjectId
-  text String
+  text String?
   seen Boolean @default(false)
   chatId String @db.ObjectId
   senderId String @db.ObjectId
   receiverId String @db.ObjectId
 
-  chat    Chat @relation( fields: [senderId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  chat    Chat @relation( fields: [chatId], references: [id])
   sender    User @relation("sender", fields: [senderId], references: [id])
   receiver User @relation("receiver", fields: [receiverId], references: [id])
 
   images Images[]
+  @@index([senderId, receiverId])
+  @@index([chatId])
+  @@index([createdAt])
 
 }
 
@@ -243,7 +278,10 @@ model Images {
    id String @id @default(auto()) @map("_id") @db.ObjectId
    url String 
    messageId String? @db.ObjectId 
+   userId String? @db.ObjectId 
+
    message Messages? @relation(fields: [messageId], references: [id])
+   serviceProviderInfo serviceProviderInfo? @relation(fields: [userId], references: [userId])
 
 }
 
@@ -253,7 +291,7 @@ enum BookingStatus {
   accepted
   confirmed
   ongoing
-  compete
+  complete
   canceled
 }
 

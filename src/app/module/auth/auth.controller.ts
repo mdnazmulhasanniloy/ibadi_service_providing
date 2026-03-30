@@ -1,5 +1,5 @@
-import type{ Request, Response } from 'express'; 
-import httpStatus from 'http-status';  
+import type { Request, Response } from 'express';
+import httpStatus from 'http-status';
 import sendResponse from '@app/utils/sendResponse.js';
 import config from '@app/config/index.js';
 import { authServices } from './auth.service.js';
@@ -8,7 +8,7 @@ import catchAsync from '@app/utils/catchAsync.js';
 // login
 const login = catchAsync(async (req: Request, res: Response) => {
   const result = await authServices.login(req.body, req);
-  const { refreshToken } = result; 
+  const { refreshToken } = result;
   const cookieOptions: any = {
     secure: false,
     httpOnly: true,
@@ -28,6 +28,7 @@ const login = catchAsync(async (req: Request, res: Response) => {
     data: result,
   });
 });
+
 // const registerWithFacebook = catchAsync(async (req: Request, res: Response) => {
 //   const result = await authServices.registerWithFacebook(req.body);
 //   const { refreshToken } = result;
@@ -74,6 +75,7 @@ const login = catchAsync(async (req: Request, res: Response) => {
 // });
 
 // change password
+
 const changePassword = catchAsync(async (req: Request, res: Response) => {
   const result = await authServices.changePassword(req?.user?.userId, req.body);
   sendResponse(res, {
@@ -111,8 +113,10 @@ const resetPassword = catchAsync(async (req: Request, res: Response) => {
 
 // refresh token
 const refreshToken = catchAsync(async (req: Request, res: Response) => {
-  const { refreshToken } = req.cookies;
-  const result = await authServices.refreshToken(refreshToken);
+  const { refreshToken } = req.cookies; 
+  const result = await authServices.refreshToken(
+    refreshToken || req.body.refreshToken,
+  );
   sendResponse(res, {
     statusCode: httpStatus.OK,
     success: true,

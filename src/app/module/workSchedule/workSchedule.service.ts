@@ -22,7 +22,6 @@ const createWorkSchedule = async (payload: Prisma.workScheduleCreateInput) => {
 get all function
 */
 const getAllWorkSchedule = async (query: Record<string, any>) => {
-  query.isDeleted = false;
   const { filters, pagination } = await pickQuery(query);
   const { searchTerm, ...filtersData } = filters;
 
@@ -32,7 +31,7 @@ const getAllWorkSchedule = async (query: Record<string, any>) => {
    * enter here search input filed
    */
   if (searchTerm) {
-    where.OR = [].map(field => ({
+    where.OR = [''].map(field => ({
       [field]: {
         contains: searchTerm,
         mode: 'insensitive',

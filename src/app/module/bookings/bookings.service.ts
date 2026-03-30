@@ -251,7 +251,7 @@ const changeStatus = async (id: string, status: BookingStatus) => {
       break;
     case BookingStatus.canceled:
       break;
-    case BookingStatus.compete:
+    case BookingStatus.complete:
       break;
     case BookingStatus.confirmed:
       break;
