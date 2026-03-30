@@ -19,6 +19,7 @@ router.delete(
   validateRequest(reviewsValidation.create),
   reviewsController.deleteReviews,
 );
+router.get('/user/:userId', reviewsController.getReviewsByUserId);
 router.get('/:id', reviewsController.getReviewsById);
 router.get('/', reviewsController.getAllReviews);
 

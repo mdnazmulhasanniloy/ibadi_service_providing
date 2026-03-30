@@ -3,7 +3,7 @@ import { z } from 'zod';
 const schema = z.object({
   userId: z.string().min(1, 'userId ID is required'),
 
-  bookingId: z.string().min(1, 'Booking ID is required'),
+  // bookingId: z.string().min(1, 'Booking ID is required'),
 
   rating: z
     .number()

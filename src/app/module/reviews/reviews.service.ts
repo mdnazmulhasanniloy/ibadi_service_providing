@@ -55,7 +55,7 @@ const getAllReviews = async (query: Record<string, any>) => {
    * enter here search input filed
    */
   if (searchTerm) {
-    where.OR = [].map(field => ({
+    where.OR = [''].map(field => ({
       [field]: {
         contains: searchTerm,
         mode: 'insensitive',
@@ -94,6 +94,26 @@ const getAllReviews = async (query: Record<string, any>) => {
     // Fetch data
     const data = await prisma.reviews.findMany({
       where,
+      include: {
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            phoneNumber: true,
+            profile: true,
+          },
+        },
+        author: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            phoneNumber: true,
+            profile: true,
+          },
+        },
+      },
       skip,
       take: limit,
       orderBy,
@@ -116,6 +136,26 @@ const getReviewsById = async (id: string) => {
       where: {
         id,
       },
+       include: {
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            phoneNumber: true,
+            profile: true,
+          },
+        },
+        author: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            phoneNumber: true,
+            profile: true,
+          },
+        },
+      }
     });
 
     if (!result) throw new Error('Reviews not found!');

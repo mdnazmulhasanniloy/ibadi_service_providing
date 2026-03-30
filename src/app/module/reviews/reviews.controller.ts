@@ -5,7 +5,6 @@ import { reviewsService } from './reviews.service.js';
 import sendResponse from '@app/utils/sendResponse.js';
 
 const createReviews = catchAsync(async (req: Request, res: Response) => {
-
   const body = {
     ...req.body,
     authorId: req.user.userId,
@@ -21,6 +20,16 @@ const createReviews = catchAsync(async (req: Request, res: Response) => {
 });
 
 const getAllReviews = catchAsync(async (req: Request, res: Response) => {
+  const result = await reviewsService.getAllReviews(req.query);
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'All reviews fetched successfully',
+    data: result,
+  });
+});
+const getReviewsByUserId = catchAsync(async (req: Request, res: Response) => {
+  req.query['userId'] = req.params.userId;
   const result = await reviewsService.getAllReviews(req.query);
   sendResponse(res, {
     statusCode: httpStatus.OK,
@@ -65,5 +74,6 @@ export const reviewsController = {
   getAllReviews,
   getReviewsById,
   // updateReviews,
+  getReviewsByUserId,
   deleteReviews,
 };
