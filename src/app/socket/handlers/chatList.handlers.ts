@@ -1,14 +1,15 @@
 import { pubClient } from '@app/redis/index.js';
 import callbackFn from '@app/utils/callbackFn.js';
-import { Server } from 'socket.io'; 
+import { Server } from 'socket.io';
 import { getMyChatList } from '../services/getChatList.js';
 
 const getChatList = async (
   io: Server,
   user: any,
-  payload: { limit?: number; page?: number },
+  payload: { limit?: number; page?: number } = { page: 1, limit: 10 },
   callback: (arg: any) => void,
 ) => {
+  console.log(payload);
   const { page = 1, limit = 10 } = payload;
   const skip = (page - 1) * limit;
   try {
@@ -29,7 +30,7 @@ const getChatList = async (
     const userSocketId = (await pubClient.hGet(
       'userId_to_socketId',
       user?.userId?.toString(),
-    )) as string; 
+    )) as string;
     io.to(userSocketId).emit('chat_list', chatList);
 
     callbackFn(callback, {

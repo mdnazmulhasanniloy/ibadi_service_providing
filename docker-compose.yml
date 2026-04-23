@@ -1,27 +1,29 @@
 services:
   app:
-    image: nazmulhasn/prisma_project_format:latest
-    container_name: prisma_project_format
+    image: nazmulhasn/ibadi_service_providing_app:latest
+    container_name: ibadi_service_providing_app
     restart: always
     env_file:
       - .env
     environment:
       - DATABASE_URL=mongodb+srv://car-doctor:car-doctor@cluster0.pyj8wdj.mongodb.net/test?retryWrites=true&w=majority
-      - REDIS_HOST=prisma_project_format_redis
+      - REDIS_HOST=ibadi_service_providing_redis
       - REDIS_PORT=6379
     ports:
-      - "5000:5000"
-      - "5005:5005"
+      - "6000:6000"
+      - "6005:6005"
     depends_on:
       - redis
 
   redis:
     image: redis:7.2-alpine
-    container_name: prisma_project_format_redis
+    container_name: ibadi_service_providing_redis
     restart: always
+    ports:
+      - '5050:6379'
     volumes:
       - redis-data:/data
-    command: ["redis-server", "--appendonly", "yes"]
+    command: ['redis-server', '--appendonly', 'yes']
 
 volumes:
   redis-data:
@@ -37,4 +39,4 @@ volumes:
 
 # volumes:
 #   redis-data:
-  # mongo-data:
+# mongo-data:

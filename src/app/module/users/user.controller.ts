@@ -76,8 +76,8 @@ const updateMyProfile = catchAsync(async (req: Request, res: Response) => {
       file: req.file,
       fileName: `images/user/profile/${Math.floor(100000 + Math.random() * 900000)}`,
     });
-  }
-  console.log(req.body);
+  }  
+  
   const result = await userService.update(req?.user?.userId, req.body);
   sendResponse(res, {
     statusCode: httpStatus.OK,

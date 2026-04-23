@@ -67,6 +67,7 @@ model User {
   sendMessages  Messages[] @relation("sender")
   receiverMessages  Messages[] @relation("receiver")
   participants Participants[] 
+  payments Payments[] 
 
 }
 
@@ -182,8 +183,21 @@ model Categories{
 
   specialistsIn SpecialistsIn[]
   othersRequiredTasks OthersRequiredTasks[]
+  subCategories SubCategories[]
 }
 
+model SubCategories{
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+  name String @unique
+  categoryId String @db.ObjectId
+  image String 
+  isDeleted Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  category Categories @relation(fields: [categoryId], references: [id])
+}
 
 model Reviews {
   id String @id @default(auto()) @map("_id") @db.ObjectId
@@ -221,9 +235,24 @@ model Bookings {
   user            User @relation("UserBookings", fields: [userId], references: [id])
   serviceProvider User @relation("ProviderBookings", fields: [serviceProviderId], references: [id])
   notifications Notification[]
+  payment Payments?
 }
 
+model Payments { 
+  bookingId String  @map("_id") @db.ObjectId 
+  userId String @db.ObjectId 
+  price Float
+  tranId String?
+  status  PAYMENT_STATUS @default(pending)
 
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+ 
+  user User @relation(fields: [userId], references: [id]) 
+  booking Bookings? @relation(fields: [bookingId], references: [id]) 
+
+  @@id(bookingId) 
+}
 model Chat {
   id String @id @default(auto()) @map("_id") @db.ObjectId
   status CHAT_STATUS @default(pending) 
@@ -310,6 +339,14 @@ enum YearsSkating {
   SIX_TO_TEN           @map("6-10")
   ELEVEN_TO_TWENTY     @map("11-20")
   TWENTY_PLUS          @map("20+")
+}
+
+enum PAYMENT_STATUS { 
+  pending
+  paid
+  refunded
+  canceled
+
 }
 enum Days {
   Mon

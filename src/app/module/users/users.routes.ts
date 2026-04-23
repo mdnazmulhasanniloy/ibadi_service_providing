@@ -11,6 +11,7 @@ const storage = memoryStorage();
 const upload = multer({ storage });
 
 const userFiles: any[] = [
+  { name: 'profile', maxCount: 1 },
   { name: 'images', maxCount: 5 },
   { name: 'palliativeCare', maxCount: 1 },
   { name: 'drivingLicense', maxCount: 1 },
@@ -34,9 +35,8 @@ router.patch(
     USER_ROLE.user,
     USER_ROLE.service_provider,
   ),
-  upload.fields(userFiles),
+  upload.single('profile'),
   parseData(),
-  uploadMultiple(userFiles),
   userController.updateMyProfile,
 );
 

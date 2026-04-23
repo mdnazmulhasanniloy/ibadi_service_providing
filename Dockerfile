@@ -37,6 +37,8 @@ COPY --from=builder /app/prisma ./prisma
 COPY start.sh ./start.sh
 RUN chmod +x ./start.sh
 
-EXPOSE 5000 5005
 
-CMD ["./start.sh"]
+
+EXPOSE 6000 6005
+
+CMD ["node", "dist/server.js"]

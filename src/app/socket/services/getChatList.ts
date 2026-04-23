@@ -49,59 +49,68 @@ export const getMyChatList = async (
     }),
   ]);
 
-  if (!chats.length) {
-    throw new AppError(httpStatus.BAD_REQUEST, 'Chat list not found');
+  if (chats.length) {
+    const chatIds = chats.map(chat => chat.id);
+
+    const [messages, unreadCounts] = await Promise.all([
+      // প্রতি chat-এর latest message
+      prisma.messages.findMany({
+        where: {
+          chatId: { in: chatIds },
+        },
+        orderBy: { createdAt: 'desc' },
+        distinct: ['chatId'],
+      }),
+
+      // প্রতি chat-এর unread count
+      prisma.messages.groupBy({
+        by: ['chatId'],
+        where: {
+          chatId: { in: chatIds },
+          senderId: { not: userId },
+          seen: false,
+        },
+        _count: { id: true },
+      }),
+    ]);
+
+    // Quick lookup map
+    const messageMap = new Map(messages.map(m => [m.chatId, m]));
+    const unreadMap = new Map(unreadCounts.map(u => [u.chatId, u._count.id]));
+
+    const data = chats.map(chat => ({
+      chat,
+      message: messageMap.get(chat.id) ?? null,
+      unreadMessageCount: unreadMap.get(chat.id) ?? 0,
+    }));
+
+    // Latest message time  sort
+    data.sort((a, b) => {
+      const dateA = a.message?.createdAt?.getTime() ?? 0;
+      const dateB = b.message?.createdAt?.getTime() ?? 0;
+      return dateB - dateA;
+    });
+
+    return {
+      chats: data,
+      pagination: {
+        page,
+        limit,
+        total: totalCount,
+        totalPage: Math.ceil(totalCount / limit),
+        hasMore: skip + data.length < totalCount,
+      },
+    };
   }
 
-  const chatIds = chats.map(chat => chat.id);
-
-  const [messages, unreadCounts] = await Promise.all([
-    // প্রতি chat-এর latest message
-    prisma.messages.findMany({
-      where: {
-        chatId: { in: chatIds },
-      },
-      orderBy: { createdAt: 'desc' },
-      distinct: ['chatId'],
-    }),
-
-    // প্রতি chat-এর unread count
-    prisma.messages.groupBy({
-      by: ['chatId'],
-      where: {
-        chatId: { in: chatIds },
-        senderId: { not: userId },
-        seen: false,
-      },
-      _count: { id: true },
-    }),
-  ]);
-
-  // Quick lookup map
-  const messageMap = new Map(messages.map(m => [m.chatId, m]));
-  const unreadMap = new Map(unreadCounts.map(u => [u.chatId, u._count.id]));
-
-  const data = chats.map(chat => ({
-    chat,
-    message: messageMap.get(chat.id) ?? null,
-    unreadMessageCount: unreadMap.get(chat.id) ?? 0,
-  }));
-
-  // Latest message time  sort
-  data.sort((a, b) => {
-    const dateA = a.message?.createdAt?.getTime() ?? 0;
-    const dateB = b.message?.createdAt?.getTime() ?? 0;
-    return dateB - dateA;
-  });
-
   return {
-    chats: data,
+    chats: [],
     pagination: {
       page,
       limit,
       total: totalCount,
       totalPage: Math.ceil(totalCount / limit),
-      hasMore: skip + data.length < totalCount,
+      hasMore: skip + 0 < totalCount,
     },
   };
 };

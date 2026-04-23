@@ -14,6 +14,11 @@ const router: Router = Router();
 
 const moduleRoutes = [
   {
+    path: '/bookings',
+    route: bookingsRoutes,
+  },
+
+  {
     path: '/chat',
     route: chatRoutes,
   },
