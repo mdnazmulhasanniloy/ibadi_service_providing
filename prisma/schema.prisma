@@ -20,13 +20,14 @@ datasource db {
 model Contents {
   id                String   @id @default(auto()) @map("_id") @db.ObjectId
   termsAndCondition String
+  type              String @unique @default("main")
   privacyPolicy     String 
   refundPolicy      String
   shippingPolicy    String
   aboutUs           String
-  location          String
   copyRight         String
   footerText        String  
+  adminCommotions   Float @default(5)
 
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
@@ -151,6 +152,14 @@ model serviceProviderInfo {
   @@id([userId])
 }
 
+model YearsOfExperience {
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+  value String 
+  isDeleted Boolean @default(false)
+}
+
+
+
 model SpecialistsIn{
   id String @id @default(auto()) @map("_id") @db.ObjectId
   userId String @db.ObjectId
@@ -214,45 +223,78 @@ model Reviews {
   author User @relation("AuthorReviews", fields: [authorId], references: [id])
  
   
-}
+} 
 
 
 model Bookings {
-  id String @id @map("_id") @default(auto()) @db.ObjectId
+  id String @id @default(auto()) @map("_id") @db.ObjectId
   userId String @db.ObjectId
-  serviceProviderId String @db.ObjectId 
-  startAt DateTime
-  endAt DateTime
-  totalAmount Float
-  location Json
-  status BookingStatus @default(requested)
-  isPayed Boolean @default(false)  
-  isDeleted Boolean @default(false)  
-
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  user            User @relation("UserBookings", fields: [userId], references: [id])
-  serviceProvider User @relation("ProviderBookings", fields: [serviceProviderId], references: [id])
-  notifications Notification[]
-  payment Payments?
-}
-
-model Payments { 
-  bookingId String  @map("_id") @db.ObjectId 
-  userId String @db.ObjectId 
+  providerId   String        @db.ObjectId 
+  isPaid Boolean @default(false)  
+  bookingType BOOKING_TYPE @default(one_time)
   price Float
-  tranId String?
-  status  PAYMENT_STATUS @default(pending)
+  startDate DateTime
+  totalHours Float
+  isActive Boolean @default(false)
+  nextBooking String? @db.ObjectId
 
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
- 
-  user User @relation(fields: [userId], references: [id]) 
-  booking Bookings? @relation(fields: [bookingId], references: [id]) 
 
-  @@id(bookingId) 
+  user              User               @relation("UserBookings",    fields: [userId],    references: [id])
+  provider          User               @relation("ProviderBookings",fields: [providerId],references: [id])
+  bookingDays     BookingDays[]
+  notifications     Notification[]
+  payments     Payments[] 
 }
+
+
+ model BookingDays {
+  id            String          @id @default(auto()) @map("_id") @db.ObjectId
+  bookingId     String          @db.ObjectId
+  day           Days
+  startTime     DateTime        // absolute datetime (2025-01-13T14:15:00Z)
+  endTime       DateTime
+  durationHours Int             // e.g. 2
+  status        BookingDayStatus @default(pending)
+
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+
+  booking   Bookings   @relation(fields: [bookingId], references: [id])
+
+  @@index([bookingId])
+  @@index([day])
+  @@map("booking_days")
+} 
+
+model Payments {
+  id            String         @id @default(auto()) @map("_id") @db.ObjectId
+  userId        String         @db.ObjectId
+  providerId        String         @db.ObjectId
+  bookingId     String         @db.ObjectId
+  amount        Float
+  status        PAYMENT_STATUS @default(pending)
+  transactionId String?        @unique
+  paymentMethod String?
+  nextPaymentDate DateTime?
+  adminParentage       Float?
+  providerParentage       Float?
+
+  paidAt    DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  serviceProvider   User               @relation(fields: [providerId], references: [id])
+  booking           Bookings           @relation(fields: [bookingId], references: [id])
+
+  @@index([providerId])
+  @@index([bookingId])
+  @@index([status])
+  @@index([nextPaymentDate])
+  @@map("payments")
+}
+
 model Chat {
   id String @id @default(auto()) @map("_id") @db.ObjectId
   status CHAT_STATUS @default(pending) 
@@ -314,7 +356,29 @@ model Images {
 
 }
 
-// Enums 
+// ─── Enums ───
+enum BookingDayStatus {
+  pending
+  confirmed
+  completed
+  canceled
+}
+
+enum SlotStatus {
+  available
+  booked
+  blocked
+}
+
+enum RecurringStatus {
+  pending
+  processing
+  paid
+  failed
+  skipped
+}
+
+
 enum BookingStatus {
   requested
   accepted
@@ -322,6 +386,11 @@ enum BookingStatus {
   ongoing
   complete
   canceled
+}
+
+enum BOOKING_TYPE {
+  one_time
+  weekly
 }
 
 enum status {

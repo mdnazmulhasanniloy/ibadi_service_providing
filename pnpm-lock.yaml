@@ -67,6 +67,9 @@ importers:
       dotenv:
         specifier: ^17.3.1
         version: 17.3.1
+      ejs:
+        specifier: ^5.0.2
+        version: 5.0.2
       express:
         specifier: ^5.2.1
         version: 5.2.1
@@ -103,6 +106,9 @@ importers:
       socket.io:
         specifier: ^4.8.3
         version: 4.8.3(bufferutil@4.1.0)(utf-8-validate@6.0.6)
+      stripe:
+        specifier: ^22.0.2
+        version: 22.0.2(@types/node@25.3.0)
       ua-parser-js:
         specifier: ^2.0.9
         version: 2.0.9
@@ -1300,6 +1306,11 @@ packages:
   effect@3.18.4:
     resolution: {integrity: sha512-b1LXQJLe9D11wfnOKAk3PKxuqYshQ0Heez+y5pnkd3jLj1yx9QhM72zZ9uUrOQyNvrs2GZZd/3maL0ZV18YuDA==}
 
+  ejs@5.0.2:
+    resolution: {integrity: sha512-IpbUaI/CAW86l3f+T8zN0iggSc0LmMZLcIW5eRVStLVNCoTXkE0YlncbbH50fp8Cl6zHIky0sW2uUbhBqGw0Jw==}
+    engines: {node: '>=0.12.18'}
+    hasBin: true
+
   empathic@2.0.0:
     resolution: {integrity: sha512-i6UzDscO/XfAcNYD75CfICkmfLedpyPDdozrLMmQc5ORaQcdMoc21OnlEylMIqI7U8eniKrPMxxtj8k0vhmJhA==}
     engines: {node: '>=14'}
@@ -2073,6 +2084,15 @@ packages:
   strip-bom@3.0.0:
     resolution: {integrity: sha512-vavAMRXOgBVNF6nyEEmL3DBK19iRpDcoIwW+swQ+CbGiu7lju6t+JklA1MHweoWtadgt4ISVUsXLyDq34ddcwA==}
     engines: {node: '>=4'}
+
+  stripe@22.0.2:
+    resolution: {integrity: sha512-2/BLrQ3oB1zlNfeL/LfHFjTGx6EQn0j+ztrrTJHuDjV5VVIpk92oSDaxyKLUr3pG3dnee2LZqhFUv2Bf0G1/3g==}
+    engines: {node: '>=18'}
+    peerDependencies:
+      '@types/node': '>=18'
+    peerDependenciesMeta:
+      '@types/node':
+        optional: true
 
   strnum@2.1.2:
     resolution: {integrity: sha512-l63NF9y/cLROq/yqKXSLtcMeeyOfnSQlfMSlzFt/K73oIaD8DGaQWd7Z34X9GPiKqP5rbSh84Hl4bOlLcjiSrQ==}
@@ -3769,6 +3789,8 @@ snapshots:
       '@standard-schema/spec': 1.1.0
       fast-check: 3.23.2
 
+  ejs@5.0.2: {}
+
   empathic@2.0.0: {}
 
   encodeurl@2.0.0: {}
@@ -4613,6 +4635,10 @@ snapshots:
       safe-buffer: 5.2.1
 
   strip-bom@3.0.0: {}
+
+  stripe@22.0.2(@types/node@25.3.0):
+    optionalDependencies:
+      '@types/node': 25.3.0
 
   strnum@2.1.2: {}
 

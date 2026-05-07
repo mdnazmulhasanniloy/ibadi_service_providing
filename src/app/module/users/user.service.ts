@@ -202,6 +202,7 @@ const getById = async (id: string) => {
   return result;
 };
 
+
 const update = async (id: string, payload: Prisma.UserUpdateInput) => {
   try {
     const result = await prisma.user.update({

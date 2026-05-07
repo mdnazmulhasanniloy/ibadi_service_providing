@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+    <style>
+      body {
+        background: #f5f7fb;
+        font-family: Arial, sans-serif;
+      }
+
+      .checkout-wrapper {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 100vh;
+      }
+
+      .checkout-card {
+        width: 420px;
+        background: #ffffff;
+        padding: 30px;
+        border-radius: 16px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+      }
+
+      .title {
+        font-size: 20px;
+        font-weight: 700;
+        margin-bottom: 6px;
+      }
+
+      .subtitle {
+        font-size: 13px;
+        color: #6b7280;
+        margin-bottom: 20px;
+      }
+
+      .card-box {
+        border: 1px solid #e5e7eb;
+        padding: 14px;
+        border-radius: 12px;
+        background: #fafafa;
+        transition: 0.2s;
+      }
+
+      .card-box:focus-within {
+        border-color: #2563eb;
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+        background: #fff;
+      }
+
+      .stripe-element {
+        padding: 10px;
+      }
+
+      .save-btn {
+        width: 100%;
+        margin-top: 20px;
+        padding: 12px;
+        border: none;
+        border-radius: 10px;
+        background: #2563eb;
+        color: white;
+        font-weight: 600;
+        cursor: pointer;
+        transition: 0.2s;
+      }
+
+      .save-btn:hover {
+        background: #1d4ed8;
+      }
+
+      .save-btn:disabled {
+        background: #93c5fd;
+        cursor: not-allowed;
+      }
+
+      #error-message {
+        color: #ef4444;
+        margin-top: 12px;
+        font-size: 13px;
+        text-align: center;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="checkout-wrapper">
+      <div class="checkout-card">
+        <h2 class="title">Add Your Payment Card</h2>
+        <p class="subtitle">Securely save your card using Stripe</p>
+
+        <form id="payment-form">
+          <div class="card-box">
+            <div id="card-element" class="stripe-element"></div>
+          </div>
+
+          <input type="hidden" id="clientSecret" value="<%= clientSecret %>" />
+          <input type="hidden" id="customerId" value="<%= customerId %>" />
+
+          <button type="submit" class="save-btn">Save Card</button>
+
+          <div id="error-message"></div>
+        </form>
+      </div>
+    </div>
+
+    <script src="https://js.stripe.com/v3/"></script>
+    <script src="/js/save-card.js"></script>
+  </body>
+</html>

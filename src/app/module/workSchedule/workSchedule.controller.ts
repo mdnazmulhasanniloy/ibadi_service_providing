@@ -5,7 +5,6 @@ import { workScheduleService } from './workSchedule.service.js';
 import sendResponse from '@app/utils/sendResponse.js';
 
 const createWorkSchedule = catchAsync(async (req: Request, res: Response) => {
-  req.body['userId'] = req.user.userId;
   const result = await workScheduleService.createWorkSchedule(req.body);
   sendResponse(res, {
     statusCode: httpStatus.OK,

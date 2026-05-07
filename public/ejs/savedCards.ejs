@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Save Card</title>
+    <script src="https://js.stripe.com/v3/"></script>
+    <style>
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        font-family: sans-serif;
+        background: #f5f5f5;
+        display: flex;
+        justify-content: center;
+        padding: 40px 16px;
+      }
+
+      .card-form {
+        background: #fff;
+        padding: 32px;
+        border-radius: 12px;
+        box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+        width: 100%;
+        max-width: 420px;
+      }
+
+      h2 {
+        margin-bottom: 24px;
+        font-size: 20px;
+        color: #1a1a1a;
+      }
+
+      #card-element {
+        border: 1px solid #d1d5db;
+        border-radius: 8px;
+        padding: 12px;
+        margin-bottom: 20px;
+        background: #fafafa;
+      }
+
+      button {
+        width: 100%;
+        padding: 12px;
+        background: #4f46e5;
+        color: white;
+        border: none;
+        border-radius: 8px;
+        font-size: 16px;
+        cursor: pointer;
+      }
+      button:disabled {
+        background: #a5b4fc;
+        cursor: not-allowed;
+      }
+
+      #message {
+        margin-top: 16px;
+        padding: 10px 14px;
+        border-radius: 6px;
+        font-size: 14px;
+        display: none;
+      }
+      #message.success {
+        background: #d1fae5;
+        color: #065f46;
+      }
+      #message.error {
+        background: #fee2e2;
+        color: #991b1b;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="card-form">
+      <h2>💳 Save Your Card</h2>
+
+      <div id="card-element"></div>
+
+      <button id="save-btn">Save Card</button>
+      <div id="message"></div>
+    </div>
+
+    <script>
+      const STRIPE_PUBLIC_KEY = '<%= stripePublicKey %>';
+      const CUSTOMER_ID = '<%= customerId %>';
+
+      // Initialize Stripe
+      const stripe = Stripe(STRIPE_PUBLIC_KEY);
+      const elements = stripe.elements();
+
+      // Mount card input element
+      const cardElement = elements.create('card', {
+        style: {
+          base: {
+            fontSize: '16px',
+            color: '#1a1a1a',
+            '::placeholder': { color: '#9ca3af' },
+          },
+          invalid: { color: '#ef4444' },
+        },
+      });
+      cardElement.mount('#card-element');
+
+      // Show success or error message
+      function showMessage(text, type) {
+        const el = document.getElementById('message');
+        el.textContent = text;
+        el.className = type;
+        el.style.display = 'block';
+      }
+
+      // Handle save card button click
+      document
+        .getElementById('save-btn')
+        .addEventListener('click', async () => {
+          const btn = document.getElementById('save-btn');
+          btn.disabled = true;
+          btn.textContent = 'Saving...';
+
+          try {
+            // Step 1: Get clientSecret from backend
+            const res = await fetch('/stripe/setup-intent', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ customerId: CUSTOMER_ID }),
+            });
+            const { clientSecret, customerId: newCustomerId } =
+              await res.json();
+
+            // Step 2: Confirm card setup with Stripe
+            const { setupIntent, error } = await stripe.confirmCardSetup(
+              clientSecret,
+              {
+                payment_method: { card: cardElement },
+              },
+            );
+
+            if (error) {
+              showMessage('Error: ' + error.message, 'error');
+            } else if (setupIntent.status === 'succeeded') {
+              // Step 3: Save new customerId to backend if customer was just created
+              if (!CUSTOMER_ID && newCustomerId) {
+                await fetch('/user/update-stripe-customer', {
+                  method: 'PATCH',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ stripeCustomerId: newCustomerId }),
+                });
+              }
+              showMessage('Card saved successfully!', 'success');
+              cardElement.clear();
+            }
+          } catch (err) {
+            showMessage('Something went wrong. Please try again.', 'error');
+          } finally {
+            btn.disabled = false;
+            btn.textContent = 'Save Card';
+          }
+        });
+    </script>
+  </body>
+</html>

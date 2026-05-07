@@ -37,6 +37,7 @@ const connectRedis = async () => {
 const messageQueue = new Queue('save_messages', { connection });
 const eventQueue = new Queue('event_notification', { connection });
 const notificationQueue = new Queue('general_notification', { connection });
+const bookingQueue = new Queue('booking_payments', { connection });
 
 // ── Subscribe (io inject করা হবে server.ts থেকে) ─────────
 const initRedisSubscriptions = (io: Server) => {
@@ -44,7 +45,6 @@ const initRedisSubscriptions = (io: Server) => {
     try {
       const message = JSON.parse(rawMessage);
 
-       
       await messageQueue.add('save', message);
 
       // Receiver কে emit
@@ -62,6 +62,8 @@ const initRedisSubscriptions = (io: Server) => {
   });
 };
 
+// ─── Queue ────────────────────────────────────────────────────────────────────
+
 export {
   pubClient,
   subClient,
@@ -69,6 +71,7 @@ export {
   initRedisSubscriptions,
   messageQueue,
   eventQueue,
+  bookingQueue,
   notificationQueue,
   connection,
 };

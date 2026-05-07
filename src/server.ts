@@ -6,6 +6,7 @@ import initializeSocket from '@app/socket/index.js';
 import { defaultTask } from '@app/utils/defaultTask.js';
 import { connectRedis } from '@app/redis/index.js';
 import '@app/workers/message.worker.js';
+import '@app/workers/booking.worker.js';
 
 const socketServer = createServer(app);
 let server: Server;

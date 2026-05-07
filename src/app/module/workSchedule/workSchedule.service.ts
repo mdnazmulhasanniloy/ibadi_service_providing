@@ -7,8 +7,10 @@ import pickQuery from '@app/utils/pickQuery.js';
 import { paginationHelper } from '@app/helpers/pagination.helpers.js';
 
 //Create Function
-const createWorkSchedule = async (payload: Prisma.workScheduleCreateInput) => {
-  const result = await prisma.workSchedule.create({
+const createWorkSchedule = async (
+  payload: Prisma.workScheduleCreateManyInput,
+) => {
+  const result = await prisma.workSchedule.createMany({
     data: payload,
   });
 

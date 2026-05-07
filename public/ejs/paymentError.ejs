@@ -17,8 +17,8 @@
       }
 
       body {
-        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
-          sans-serif;
+        font-family:
+          -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
         background: linear-gradient(135deg, #007dd0 0%, #e9f6ff 100%);
         min-height: 100vh;
         display: flex;
@@ -159,7 +159,9 @@
         <div id="error-animation" class="error-animation"></div>
       </div>
 
-      <h1 class="error-message slide-up">Oops! Payment Is Failed !</h1>
+      <h1 class="error-message slide-up">
+        <%= title ? title : "Oops! Payment Is Failed !" %>
+      </h1>
       <p class="subtitle slide-up">
         <%= message + " Please try again later."?? "Please try again later." %>
       </p>

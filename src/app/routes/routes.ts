@@ -9,10 +9,20 @@ import { categoryRoutes } from '@app/module/category/category.route.js';
 import { bookingsRoutes } from '@app/module/bookings/bookings.route.js';
 import { reviewsRoutes } from '@app/module/reviews/reviews.route.js';
 import { chatRoutes } from '@app/module/chat/chat.route.js';
+import { stripeRoutes } from '@app/module/stripe/stripe.route.js';
+import { paymentsRoutes } from '@app/module/payments/payments.route.js';
 
 const router: Router = Router();
 
 const moduleRoutes = [
+  {
+    path: "/payments",
+    route: paymentsRoutes,
+  },
+  {
+    path: '/stripe',
+    route: stripeRoutes,
+  },
   {
     path: '/chat',
     route: chatRoutes,

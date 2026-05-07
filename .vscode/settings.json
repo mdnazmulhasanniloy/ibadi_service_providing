@@ -8,6 +8,6 @@
   "editor.formatOnSave": true,
   "editor.formatOnPaste": true,
   "typescript.updateImportsOnFileMove.enabled": "always",
-  "cSpell.words": ["Alrady", "refference", "updatetion"],
+  "cSpell.words": ["admincommitions", "Alrady", "refference", "updatetion"],
   "prisma.pinToPrisma6": true
 }

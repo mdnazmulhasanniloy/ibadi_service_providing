@@ -32,6 +32,14 @@ app.use(
   }),
 );
 
+app.use((req, res, next) => {
+  res.setHeader(
+    'Content-Security-Policy',
+    "default-src 'self'; script-src 'self' https://js.stripe.com; frame-src https://js.stripe.com; connect-src 'self' https://api.stripe.com; img-src 'self' data:; style-src 'self' 'unsafe-inline';",
+  );
+  next();
+});
+
 app.use('/api/v1', router);
 
 app.get('/', (req: Request, res: Response) => {
