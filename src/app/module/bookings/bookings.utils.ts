@@ -1,5 +1,5 @@
-import StripeService from "@app/class/string.class.js"; 
-import prisma from "@app/shared/prisma.js";
+import StripeService from '@app/class/string.class.js';
+import prisma from '@app/shared/prisma.js';
 
 export const resolveStripeCustomer = async (user: {
   id: string;
@@ -7,17 +7,22 @@ export const resolveStripeCustomer = async (user: {
   name?: string | null;
   customerId?: string | null;
 }): Promise<string> => {
-  if (user.customerId) return user.customerId;
+  try {
+    if (user.customerId) return user.customerId;
 
-  const customer = await StripeService.createCustomer(
-    user.email,
-    user.name ?? 'Customer',
-  );
+    const customer = await StripeService.createCustomer(
+      user.email,
+      user.name ?? 'Customer',
+    );
 
-  await prisma.user.update({
-    where: { id: user.id },
-    data: { customerId: customer!.id },
-  });
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { customerId: customer!.id },
+    });
 
-  return customer!.id;
+    return customer!.id;
+  } catch (error: any) {
+    console.log(error);
+    throw new Error(error.message);
+  }
 };

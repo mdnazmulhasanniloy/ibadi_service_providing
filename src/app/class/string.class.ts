@@ -8,7 +8,7 @@ interface IProducts {
 class StripeServices<T> {
   private stripe() {
     return new StripeType(config.stripe.stripe_api_secret as string, {
-      apiVersion: '2026-03-25.dahlia',
+      apiVersion: '2026-04-22.dahlia',
       typescript: true,
     });
   }
@@ -197,7 +197,8 @@ class StripeServices<T> {
     try {
       const stripe = this.stripe();
 
-      // Customer না থাকলে নতুন তৈরি করুন
+      // Customer if not have then create new
+
       let customer = customerId;
       if (!customer) {
         const newCustomer = await stripe.customers.create();
@@ -314,6 +315,17 @@ class StripeServices<T> {
       this.handleError(error, 'customer creation failed');
     }
   }
+  public async getCustomer(customerId: string) {
+    try {
+      const customer = await this.stripe().customers.retrieve(customerId);
+
+      return customer;
+    } catch (error) {
+      console.log(error);
+      this.handleError(error, 'customer get filed');
+    }
+  }
+
   public getStripe() {
     return this.stripe();
   }

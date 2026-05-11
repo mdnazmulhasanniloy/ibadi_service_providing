@@ -140,8 +140,17 @@ const getAll = async (query: Record<string, any>) => {
       serviceProviderInfo: {
         include: {
           images: true,
-          othersRequiredTasks: true,
-          specialistsIn: true,
+          othersRequiredTasks: {
+            select: {
+              othersTask: true,
+            },
+          },
+          specialistsIn: {
+            select: {
+              category: true,
+            },
+          },
+          experience: true,
         },
       },
       deviceHistory: true,
@@ -182,8 +191,17 @@ const getById = async (id: string) => {
       serviceProviderInfo: {
         include: {
           images: true,
-          othersRequiredTasks: true,
-          specialistsIn: true,
+          othersRequiredTasks: {
+            select: {
+              othersTask: true,
+            },
+          },
+          specialistsIn: {
+            select: {
+              category: true,
+            },
+          },
+          experience: true,
         },
       },
       deviceHistory: true,
@@ -202,7 +220,6 @@ const getById = async (id: string) => {
   return result;
 };
 
-
 const update = async (id: string, payload: Prisma.UserUpdateInput) => {
   try {
     const result = await prisma.user.update({
@@ -212,7 +229,13 @@ const update = async (id: string, payload: Prisma.UserUpdateInput) => {
         verification: true,
         deviceHistory: true,
         workSchedule: true,
-        serviceProviderInfo: true,
+        serviceProviderInfo: {
+          include: {
+            experience: true,
+            othersRequiredTasks: true,
+            specialistsIn: true,
+          },
+        },
       },
     });
     return result;
@@ -224,140 +247,80 @@ const update = async (id: string, payload: Prisma.UserUpdateInput) => {
   }
 };
 
-// const serviceProfileInfo = async (userId: string, payload: any) => {
-//   const {
-//     images,
-//     palliativeCare,
-//     drivingLicense,
-//     businessProfiles,
-//     qualifiedCarer,
-
-//     othersRequiredTasks,
-//     specialistsIn,
-//     ...data
-//   } = payload;
-
-//   // ── File fields ─────────────────────────────────────────────
-//   const fileFields = {
-//     palliativeCare,
-//     drivingLicense,
-//     businessProfiles,
-//     qualifiedCarer,
-//   };
-
-//   Object.entries(fileFields).forEach(([key, value]) => {
-//     if (Array.isArray(value) && value.length > 0) {
-//       data[key] = value[0];
-//     }
-//   });
-
-//   // ── Images nested create ───────────────────────────────
-//   if (images && images.length > 0)
-//     data['images'] = { create: images?.map((img: string) => ({ url: img })) };
-
-//   // ── othersRequiredTasks ─────────────────────────────────────────────
-//   if (othersRequiredTasks && othersRequiredTasks.length > 0)
-//     data['othersRequiredTasks'] = {
-//       create: othersRequiredTasks?.map((v: string) => v),
-//     };
-//   // ── specialistsIn ─────────────────────────────────────────────
-//   if (specialistsIn && specialistsIn.length > 0)
-//     data['specialistsIn'] = {
-//       create: specialistsIn?.map((v: string) => v),
-//     };
-
-//   // ── Upsert ─────────────────────────────────────────────
-//   const result = await prisma.serviceProviderInfo.upsert({
-//     where: { userId },
-//     create: {
-//       userId,
-//       perHourPrice: data.perHourPrice ?? 0,
-//       ...data,
-//     },
-//     update: data,
-//     include: {
-//       images: true,
-//     },
-//   });
-
-//   return result;
-// };
-
 const serviceProfileInfo = async (userId: string, payload: any) => {
   const {
     images,
+    specialistsIn,
+    othersRequiredTasks,
+    experienceId,
+
     palliativeCare,
     drivingLicense,
     businessProfiles,
     qualifiedCarer,
-    othersRequiredTasks,
-    specialistsIn,
-    ...data
+
+    perHourPrice,
+    ...rest
   } = payload;
 
-  // ── File fields — if array then take first item ────────────
-  const fileFields = {
-    palliativeCare,
-    drivingLicense,
-    businessProfiles,
-    qualifiedCarer,
+  // ── helper: take first index if array ──
+  const takeFirst = (value: any) => {
+    if (Array.isArray(value)) {
+      return value[0] ?? null;
+    }
+    return value ?? null;
   };
 
-  Object.entries(fileFields).forEach(([key, value]) => {
-    if (Array.isArray(value) && value.length > 0) {
-      data[key] = value[0];
-    }
-  });
+  // ── normalize file fields ──
+  const data = {
+    ...rest,
+    perHourPrice,
 
-  const hasImages = images?.length > 0;
-  const hasSpecialists = specialistsIn?.length > 0;
-  const hasOtherTasks = othersRequiredTasks?.length > 0;
+    palliativeCare: takeFirst(palliativeCare),
+    drivingLicense: takeFirst(drivingLicense),
+    businessProfiles: takeFirst(businessProfiles),
+    qualifiedCarer: takeFirst(qualifiedCarer),
+  };
 
   const result = await prisma.$transaction(async tx => {
-    // ── serviceProviderInfo upsert ─────────────────────
-    const serviceInfo = await tx.serviceProviderInfo.upsert({
+    // 1️⃣ Upsert Service Provider Info
+    await tx.serviceProviderInfo.upsert({
       where: { userId },
+
       create: {
         userId,
-        perHourPrice: data.perHourPrice ?? 0,
         ...data,
-        ...(hasImages && {
-          images: {
-            create: images.map((url: string) => ({ url })),
-          },
-        }),
-        ...(hasSpecialists && {
-          specialistsIn: {
-            create: specialistsIn.map((categoryId: string) => ({ categoryId })),
-          },
-        }),
-        ...(hasOtherTasks && {
-          othersRequiredTasks: {
-            create: othersRequiredTasks.map((categoryId: string) => ({
-              categoryId,
-            })),
-          },
-        }),
+
+        experience: experienceId
+          ? { connect: { id: experienceId } }
+          : undefined,
+
+        images: images?.length
+          ? {
+              create: images.map((url: string) => ({ url })),
+            }
+          : undefined,
       },
+
       update: {
         ...data,
-        // doing images append
-        ...(hasImages && {
-          images: {
-            create: images.map((url: string) => ({ url })),
-          },
-        }),
-      },
-      include: {
-        images: true,
-        specialistsIn: { include: { category: true } },
-        othersRequiredTasks: { include: { category: true } },
+
+        experience: experienceId
+          ? { connect: { id: experienceId } }
+          : undefined,
+
+        images: images?.length
+          ? {
+              create: images.map((url: string) => ({ url })),
+            }
+          : undefined,
       },
     });
 
-    // ── specialistsIn — update or delete then create ────
-    if (hasSpecialists) {
+    // 2️⃣ specialistsIn replace
+    if (specialistsIn?.length) {
       await tx.specialistsIn.deleteMany({ where: { userId } });
+
       await tx.specialistsIn.createMany({
         data: specialistsIn.map((categoryId: string) => ({
           userId,
@@ -366,31 +329,38 @@ const serviceProfileInfo = async (userId: string, payload: any) => {
       });
     }
 
-    // ── othersRequiredTasks — update or delete then create
-    if (hasOtherTasks) {
+    // 3️⃣ othersRequiredTasks replace
+    if (othersRequiredTasks?.length) {
       await tx.othersRequiredTasks.deleteMany({ where: { userId } });
+
       await tx.othersRequiredTasks.createMany({
-        data: othersRequiredTasks.map((categoryId: string) => ({
+        data: othersRequiredTasks.map((othersTaskId: string) => ({
           userId,
-          categoryId,
+          othersTaskId,
         })),
       });
     }
 
-    // ── Final result ───────────────────────────────────
+    // 4️⃣ return full updated profile
     return tx.serviceProviderInfo.findUnique({
       where: { userId },
       include: {
         images: true,
-        specialistsIn: { include: { category: true } },
-        othersRequiredTasks: { include: { category: true } },
+        experience: true,
+
+        specialistsIn: {
+          include: { category: true },
+        },
+
+        othersRequiredTasks: {
+          include: { othersTask: true },
+        },
       },
     });
   });
 
   return result;
 };
-
 const deleteUser = async (id: string) => {
   const result = await prisma.user.update({
     where: {

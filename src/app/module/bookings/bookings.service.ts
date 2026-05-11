@@ -8,6 +8,9 @@ import StripeService from '@app/class/string.class.js';
 import config from '@app/config/index.js';
 import { resolveStripeCustomer } from './bookings.utils.js';
 import generateCryptoString from '@app/utils/generateCryptoString.js';
+import pickQuery from '@app/utils/pickQuery.js';
+import type { Prisma } from '../../../../generated/prisma/index.js';
+import { paginationHelper } from '@app/helpers/pagination.helpers.js';
 
 const createBookings = async (payload: any): Promise<string> => {
   // 1. Validate user early — before writing any records
@@ -84,17 +87,101 @@ const createBookings = async (payload: any): Promise<string> => {
   return checkoutSession.url;
 };
 
-const getAllBookings = async (query: any) => {
-  const bookings = await prisma.bookings.findMany({
-    where: {
-      userId: query.userId,
-    },
-    include: {
-      bookingDays: true,
-    },
-  });
+/**
+ * 
+ *   
+  userId String @db.ObjectId
+  providerId   String        @db.ObjectId 
+  isPaid Boolean @default(false)  
+  bookingType BOOKING_TYPE @default(one_time)
+  price Float
+  startDate DateTime
+  totalHours Float
+  isActive Boolean @default(false)
+  nextBooking String? @db.ObjectId
 
-  return bookings;
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user              User               @relation("UserBookings",    fields: [userId],    references: [id])
+  provider          User               @relation("ProviderBookings",fields: [providerId],references: [id])
+  bookingDays     BookingDays[]
+  notifications     Notification[]
+  payments     Payments[] 
+
+ * @param query 
+ * @returns 
+ */
+const getAllBookings = async (query: any) => {
+  query.isDeleted = false;
+  const { filters, pagination } = await pickQuery(query);
+  const { searchTerm,upcoming, ...filtersData } = filters;
+
+  const where: Prisma.BookingsWhereInput = {};
+
+  /*
+   * enter here search input filed
+   */
+  if (searchTerm) {
+    where.OR = ['bookingType'].map(field => ({
+      [field]: {
+        contains: searchTerm,
+        mode: 'insensitive',
+      },
+    }));
+  }
+
+  if (upcoming) {
+    where.AND = [{
+
+    }]
+  }
+
+  // Filter conditions
+  if (Object.keys(filtersData).length > 0) {
+    const oldAnd = where.AND;
+    const andArray = Array.isArray(oldAnd) ? oldAnd : oldAnd ? [oldAnd] : [];
+
+    where.AND = [
+      ...andArray,
+      ...Object.entries(filtersData).map(([key, value]) => ({
+        [key]: { equals: value },
+      })),
+    ];
+  }
+
+  // Pagination & Sorting
+  const { page, limit, skip, sort } =
+    paginationHelper.calculatePagination(pagination);
+
+  const orderBy: Prisma.CategoriesOrderByWithRelationInput[] = sort
+    ? sort.split(',').map(field => {
+        const trimmed = field.trim();
+        if (trimmed.startsWith('-')) {
+          return { [trimmed.slice(1)]: 'desc' };
+        }
+        return { [trimmed]: 'asc' };
+      })
+    : [];
+
+  try {
+    // Fetch data
+    const data = await prisma.bookings.findMany({
+      where,
+      skip,
+      take: limit,
+      orderBy,
+    });
+
+    const total = await prisma.bookings.count({ where });
+
+    return {
+      data,
+      meta: { page, limit, total },
+    };
+  } catch (error: any) {
+    throw new AppError(httpStatus.BAD_REQUEST, error?.message);
+  }
 };
 
 const getBookingsById = async (id: string) => {

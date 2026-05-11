@@ -29,7 +29,9 @@ const addStripeCard = async (userId: string) => {
   });
 
   return {
-    url: `http://localhost:1000/api/v1/stripe/payment-method/add-page?clientSecret=${setupIntent.client_secret}&customerId=${customerId}`,
+    secret: setupIntent.client_secret,
+    customerId,
+    url: `http://103.186.20.117:1000/api/v1/stripe/payment-method/add-page?clientSecret=${setupIntent.client_secret}&customerId=${customerId}`,
   };
 };
 
@@ -51,7 +53,6 @@ const setupInitiate = async (payload: {
 const getCardList = async (
   userId: String,
 ): Promise<TCardList[] | [] | null> => {
-  const cardList = [];
   try {
     const user = await prisma.user.findUnique({
       where: {
@@ -65,13 +66,24 @@ const getCardList = async (
       },
     });
     if (!user) throw new AppError(httpStatus.BAD_REQUEST, 'User not found');
+    if (!user.customerId)
+      throw new AppError(
+        httpStatus.BAD_REQUEST,
+        'stripe customer id not have.',
+      );
 
-    const customerId = await resolveStripeCustomer(user);
+    const customer: any = await StripeService.getCustomer(user!.customerId);
+
+
+    
+    // const customer =
+    await StripeService.getStripe().customers.retrieve(customer.id as string);
 
     const paymentMethods = await StripeService.getStripe().paymentMethods.list({
-      customer: customerId,
+      customer: customer?.id,
       type: 'card',
     });
+
     const cardList =
       paymentMethods?.data?.map(item => ({
         id: item.id,
@@ -83,6 +95,10 @@ const getCardList = async (
         funding: item.card?.funding || '',
         country: item.card?.country || '',
         fingerprint: item.card?.fingerprint || '',
+        isDefault:
+          customer.invoice_settings?.default_payment_method === item.id
+            ? true
+            : false,
       })) ?? [];
 
     return cardList;
@@ -137,9 +153,52 @@ const deleteCard = async (cardId: string, userId: string) => {
   }
 };
 
+const setDefaultCard = async (paymentMethodId: string, userId: string) => {
+  const user = await prisma.user.findUnique({
+    where: {
+      id: userId,
+    },
+    select: {
+      id: true,
+      customerId: true,
+      email: true,
+      name: true,
+    },
+  });
+
+  if (!user) {
+    throw new AppError(httpStatus.BAD_REQUEST, 'User not found');
+  }
+
+  const customerId = await resolveStripeCustomer(user);
+
+  // verify payment method belongs to this customer
+  const paymentMethod =
+    await StripeService.getStripe().paymentMethods.retrieve(paymentMethodId);
+
+  if (paymentMethod.customer !== customerId) {
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      'This card does not belong to this customer',
+    );
+  }
+
+  // set default payment method
+  await StripeService.getStripe().customers.update(customerId, {
+    invoice_settings: {
+      default_payment_method: paymentMethodId,
+    },
+  });
+
+  return {
+    success: true,
+    message: 'Default card updated successfully',
+  };
+};
 export const stripeService = {
   addStripeCard,
   setupInitiate,
   getCardList,
   deleteCard,
+  setDefaultCard,
 };

@@ -135,7 +135,7 @@ model serviceProviderInfo {
   businessProfiles String?
   documents String?
   perHourPrice Float
-  experience  YearsSkating @default(ZERO_TO_TWO)
+  experienceOptionId String? @db.ObjectId 
   qualifiedCarer String?
  
   
@@ -144,18 +144,25 @@ model serviceProviderInfo {
 
 
   user User @relation(fields: [userId], references: [id]) 
+  experience ExperienceOptions? @relation(fields: [experienceOptionId], references: [id]) 
    
   images Images[]
   specialistsIn SpecialistsIn[]
+  
   othersRequiredTasks OthersRequiredTasks[]
 
   @@id([userId])
 }
 
-model YearsOfExperience {
+model ExperienceOptions {
   id String @id @default(auto()) @map("_id") @db.ObjectId
   value String 
   isDeleted Boolean @default(false)
+
+ createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  serviceProviderInfo serviceProviderInfo[] 
 }
 
 
@@ -165,20 +172,39 @@ model SpecialistsIn{
   userId String @db.ObjectId
   categoryId String @db.ObjectId
 
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+
   serviceProviderInfo serviceProviderInfo @relation(fields: [userId], references: [userId]) 
   category Categories @relation(fields: [categoryId], references: [id])
 
 }
+
 model OthersRequiredTasks{
+  
   id String @id @default(auto()) @map("_id") @db.ObjectId
   userId String @db.ObjectId
-  categoryId String @db.ObjectId
+  othersTaskId String @db.ObjectId
 
-   serviceProviderInfo serviceProviderInfo @relation(fields: [userId], references: [userId])
-  category Categories @relation(fields: [categoryId], references: [id])
-
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  serviceProviderInfo serviceProviderInfo @relation(fields: [userId], references: [userId])
+  othersTask OthersTask @relation(fields: [othersTaskId], references: [id])
+  
 }
 
+model OthersTask {
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+  value String 
+  isDeleted Boolean @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  othersRequiredTasks OthersRequiredTasks[]
+
+}
 
 model Categories{
   id String @id @default(auto()) @map("_id") @db.ObjectId
@@ -190,8 +216,7 @@ model Categories{
   updatedAt DateTime @updatedAt
 
 
-  specialistsIn SpecialistsIn[]
-  othersRequiredTasks OthersRequiredTasks[]
+  specialistsIn SpecialistsIn[] 
   subCategories SubCategories[]
 }
 
@@ -402,13 +427,7 @@ enum CHAT_STATUS {
  accepted
  blocked
 }
-enum YearsSkating {
-  ZERO_TO_TWO          @map("0-2")
-  THREE_TO_FIVE        @map("3-5")
-  SIX_TO_TEN           @map("6-10")
-  ELEVEN_TO_TWENTY     @map("11-20")
-  TWENTY_PLUS          @map("20+")
-}
+ 
 
 enum PAYMENT_STATUS { 
   pending

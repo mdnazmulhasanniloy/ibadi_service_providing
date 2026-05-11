@@ -20,6 +20,12 @@ router.post(
   // auth(USER_ROLE.user),
   stripeController.saveStripeCard,
 );
+//save default payment method
+router.post(
+  '/payment-method/default/:paymentMethodId',
+  auth(USER_ROLE.user),
+  stripeController.setDefaultCard,
+);
 
 // Get all saved cards
 router.get(

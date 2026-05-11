@@ -1,3 +1,4 @@
+import { othersTaskOptionsRoutes } from './../module/othersTaskOptions/othersTaskOptions.route.js';
 import { Router } from 'express';
 import { userRoutes } from '@app/module/users/users.routes.js';
 import { otpRoutes } from '@app/module/otp/otp.routes.js';
@@ -11,12 +12,22 @@ import { reviewsRoutes } from '@app/module/reviews/reviews.route.js';
 import { chatRoutes } from '@app/module/chat/chat.route.js';
 import { stripeRoutes } from '@app/module/stripe/stripe.route.js';
 import { paymentsRoutes } from '@app/module/payments/payments.route.js';
+import { experienceOptionsRoutes } from '@app/module/experienceOptions/experienceOptions.route.js';
 
 const router: Router = Router();
 
 const moduleRoutes = [
   {
-    path: "/payments",
+    path: '/others-task-options',
+    route: othersTaskOptionsRoutes,
+  },
+  {
+    path: '/experience-options',
+    route: experienceOptionsRoutes,
+  },
+
+  {
+    path: '/payments',
     route: paymentsRoutes,
   },
   {

@@ -25,14 +25,25 @@ const getStripeCardAddPage = catchAsync(async (req: Request, res: Response) => {
 
 const saveStripeCard = catchAsync(async (req: Request, res: Response) => {
   try {
-    await stripeService.setupInitiate(req.body);
-
+    const result = await stripeService.setupInitiate(req.body);
+    return sendResponse(res, {
+      success: true,
+      statusCode: httpStatus.OK,
+      message: 'Payment method save successfully',
+      data: result,
+    });
     return res.render('successMessage', {
       title: 'Card Added Successfully',
       description:
         'Your card has been saved successfully. You can now use it for future payments.',
     });
   } catch (error: any) {
+    return sendResponse(res, {
+      success: false,
+      statusCode: httpStatus.OK,
+      message: 'Payment method save successfully',
+      data: {},
+    });
     return res.render('paymentError', {
       title: 'Card Save Failed',
       message: error.message || 'Failed to save card. Please try again.',
@@ -63,6 +74,19 @@ const deleteCard = catchAsync(async (req: Request, res: Response) => {
     data: result,
   });
 });
+const setDefaultCard = catchAsync(async (req: Request, res: Response) => {
+  const result = await stripeService.setDefaultCard(
+    req.params.paymentMethodId as string,
+    req.user.userId,
+  );
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'your add card link get successfully',
+    data: result,
+  });
+});
 
 export const stripeController = {
   addStripeCard,
@@ -70,4 +94,5 @@ export const stripeController = {
   saveStripeCard,
   getCardList,
   deleteCard,
+  setDefaultCard,
 };
