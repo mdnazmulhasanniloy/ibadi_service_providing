@@ -34,6 +34,14 @@ model Contents {
 
  @@map("contents")
 } 
+model Faq {
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+  question String 
+  answer String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
 
 
 model User {
@@ -254,15 +262,18 @@ model Reviews {
 model Bookings {
   id String @id @default(auto()) @map("_id") @db.ObjectId
   userId String @db.ObjectId
-  providerId   String        @db.ObjectId 
-  isPaid Boolean @default(false)  
-  bookingType BOOKING_TYPE @default(one_time)
+  providerId   String        @db.ObjectId
+  isPaid Boolean @default(false)
+  bookingType BOOKING_TYPE @default(one_time) 
+  status BookingStatus @default(requested)
   price Float
   startDate DateTime
+  endDate DateTime? // For weekly: when the recurring booking ends (null = unlimited)
   totalHours Float
-  isActive Boolean @default(false)
+  isActive Boolean @default(true)
   nextBooking String? @db.ObjectId
 
+  isDeleted Boolean @default(false)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -270,7 +281,7 @@ model Bookings {
   provider          User               @relation("ProviderBookings",fields: [providerId],references: [id])
   bookingDays     BookingDays[]
   notifications     Notification[]
-  payments     Payments[] 
+  payments     Payments[]
 }
 
 
@@ -387,7 +398,7 @@ enum BookingDayStatus {
   confirmed
   completed
   canceled
-}
+} 
 
 enum SlotStatus {
   available

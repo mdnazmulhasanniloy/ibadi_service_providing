@@ -325,6 +325,9 @@ const confirmPayment = async (query: Record<string, any>, res: Response) => {
             update: {
               isActive: true,
               isPaid: true,
+              endDate: moment(isPaymentHave?.booking?.startDate)
+                .add(1, 'week')
+                .toDate(),
             },
           },
         },
@@ -348,6 +351,7 @@ const confirmPayment = async (query: Record<string, any>, res: Response) => {
             providerId: isPaymentHave.booking.providerId,
             price: isPaymentHave.booking.price,
             startDate: baseDate.toDate(),
+            endDate: moment(baseDate).add(1, 'week').toDate(),  
             totalHours: isPaymentHave.booking.totalHours,
             bookingType: isPaymentHave.booking.bookingType,
             nextBooking: null,

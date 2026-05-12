@@ -13,10 +13,15 @@ import { chatRoutes } from '@app/module/chat/chat.route.js';
 import { stripeRoutes } from '@app/module/stripe/stripe.route.js';
 import { paymentsRoutes } from '@app/module/payments/payments.route.js';
 import { experienceOptionsRoutes } from '@app/module/experienceOptions/experienceOptions.route.js';
+import { faqRoutes } from '@app/module/faq/faq.route.js';
 
 const router: Router = Router();
 
 const moduleRoutes = [
+  {
+    path: '/faq',
+    route: faqRoutes,
+  },
   {
     path: '/others-task-options',
     route: othersTaskOptionsRoutes,
