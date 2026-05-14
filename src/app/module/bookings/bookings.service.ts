@@ -55,48 +55,6 @@ const createBookings = async (payload: any) => {
   }
 
   return booking;
-
-  // 3. Compute commission split
-  // const adminAmount = toFixed2(
-  //   ((contents?.adminCommotions ?? 5) * booking.price) / 100,
-  // );
-  // const providerAmount = toFixed2(booking.price - adminAmount);
-
-  // // 4. Create payment record + resolve Stripe customer (independent, run in parallel)
-  // const [payment, customerId] = await Promise.all([
-  //   prisma.payments.create({
-  //     data: {
-  //       userId: payload.userId,
-  //       providerId: payload.providerId,
-  //       bookingId: booking.id,
-  //       transactionId: generateCryptoString(10),
-  //       amount: booking.price,
-  //       nextPaymentDate: moment(booking.startDate).add(1, 'weeks').toDate(),
-  //       adminParentage: adminAmount,
-  //       providerParentage: providerAmount,
-  //     },
-  //   }),
-  //   resolveStripeCustomer(user),
-  // ]);
-
-  // // 5. Create Stripe checkout session
-  // const baseUrl = `${config.server_url}/payments/confirm-payment`;
-  // const redirectUrl = `${baseUrl}?sessionId={CHECKOUT_SESSION_ID}&paymentId=${payment.id}`;
-
-  // const checkoutSession = await StripeService.getCheckoutSession(
-  //   { amount: payment.amount, name: 'Service Provider Booking', quantity: 1 },
-  //   redirectUrl, // success_url
-  //   redirectUrl, // cancel_url (same as original)
-  //   customerId,
-  // );
-
-  // if (!checkoutSession?.url)
-  //   throw new AppError(
-  //     httpStatus.BAD_REQUEST,
-  //     'Failed to create checkout session',
-  //   );
-
-  // return checkoutSession.url;
 };
 
 const getAllBookings = async (query: any) => {
@@ -140,6 +98,26 @@ const getAllBookings = async (query: any) => {
             email: true,
             profile: true,
             phoneNumber: true,
+
+            serviceProviderInfo: {
+              select: {
+                coverImage: true,
+                perHourPrice: true,
+                specialistsIn: {
+                  select: {
+                    id: true,
+                    categoryId: true,
+                    category: {
+                      select: {
+                        id: true,
+                        name: true,
+                        image: true,
+                      },
+                    },
+                  },
+                },
+              },
+            },
           },
         };
       } else if (trimmedField) {
@@ -151,16 +129,16 @@ const getAllBookings = async (query: any) => {
   const andConditions: Prisma.BookingsWhereInput[] = [];
 
   // Search
-  if (searchTerm) {
-    andConditions.push({
-      OR: ['bookingType'].map(field => ({
-        [field]: {
-          contains: searchTerm,
-          mode: 'insensitive',
-        },
-      })),
-    });
-  }
+  // if (searchTerm) {
+  //   andConditions.push({
+  //     OR: ['bookingType'].map(field => ({
+  //       [field]: {
+  //         contains: searchTerm,
+  //         mode: 'insensitive',
+  //       },
+  //     })),
+  //   });
+  // }
 
   // Upcoming bookings
   if (upcoming === 'true') {
@@ -255,8 +233,54 @@ const getBookingsById = async (id: string, includeData: string) => {
   const include: { [key: string]: boolean | Object } = {};
   if (includeData) {
     const fields = includeData.split(',');
+
     fields.forEach((field: string) => {
-      if (field.trim()) include[field.trim()] = true;
+      const trimmedField = field.trim();
+
+      if (trimmedField === 'user') {
+        include.user = {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            profile: true,
+            phoneNumber: true,
+          },
+        };
+      } else if (trimmedField === 'provider') {
+        include.provider = {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            profile: true,
+            phoneNumber: true,
+
+            serviceProviderInfo: {
+              select: {
+                coverImage: true,
+                perHourPrice: true,
+
+                specialistsIn: {
+                  select: {
+                    id: true,
+                    categoryId: true,
+                    category: {
+                      select: {
+                        id: true,
+                        name: true,
+                        image: true,
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        };
+      } else if (trimmedField) {
+        include[trimmedField] = true;
+      }
     });
   }
   const booking = await prisma.bookings.findUnique({

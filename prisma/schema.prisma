@@ -38,9 +38,13 @@ model Faq {
   id String @id @default(auto()) @map("_id") @db.ObjectId
   question String 
   answer String
+  categoryId String @db.ObjectId
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+
+  category Categories @relation(fields: [categoryId], references: [id])
 }
 
 
@@ -77,6 +81,7 @@ model User {
   receiverMessages  Messages[] @relation("receiver")
   participants Participants[] 
   payments Payments[] 
+  providerPayments Payments[] @relation("ProviderPayments")
 
 }
 
@@ -137,8 +142,10 @@ model workSchedule {
 
 
 model serviceProviderInfo {
+      
   userId    String   @map("_id") @db.ObjectId 
   palliativeCare String?
+  coverImage String?
   drivingLicense String?
   businessProfiles String?
   documents String?
@@ -158,6 +165,7 @@ model serviceProviderInfo {
   specialistsIn SpecialistsIn[]
   
   othersRequiredTasks OthersRequiredTasks[]
+  
 
   @@id([userId])
 }
@@ -226,6 +234,7 @@ model Categories{
 
   specialistsIn SpecialistsIn[] 
   subCategories SubCategories[]
+  faq Faq[]
 }
 
 model SubCategories{
@@ -279,9 +288,9 @@ model Bookings {
 
   user              User               @relation("UserBookings",    fields: [userId],    references: [id])
   provider          User               @relation("ProviderBookings",fields: [providerId],references: [id])
-  bookingDays     BookingDays[]
+  bookingDays       BookingDays[]
   notifications     Notification[]
-  payments     Payments[]
+  payments          Payments[]
 }
 
 
@@ -321,8 +330,9 @@ model Payments {
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
 
-  serviceProvider   User               @relation(fields: [providerId], references: [id])
-  booking           Bookings           @relation(fields: [bookingId], references: [id])
+  user              User                              @relation(fields: [userId], references: [id])
+  provider          User                              @relation("ProviderPayments", fields: [providerId], references: [id])
+  booking           Bookings                          @relation(fields: [bookingId], references: [id]) 
 
   @@index([providerId])
   @@index([bookingId])
@@ -417,8 +427,7 @@ enum RecurringStatus {
 
 enum BookingStatus {
   requested
-  accepted
-  confirmed
+  accepted 
   ongoing
   complete
   canceled

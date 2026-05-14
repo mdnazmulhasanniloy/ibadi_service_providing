@@ -12,6 +12,7 @@ const upload = multer({ storage });
 
 const userFiles: any[] = [
   { name: 'profile', maxCount: 1 },
+  { name: 'coverImage', maxCount: 1 },
   { name: 'images', maxCount: 5 },
   { name: 'palliativeCare', maxCount: 1 },
   { name: 'drivingLicense', maxCount: 1 },

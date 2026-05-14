@@ -1,7 +1,7 @@
 import AppError from '@app/error/AppError.js';
-import prisma from '@app/shared/prisma.js';   
+import prisma from '@app/shared/prisma.js';
 import type { Prisma } from '../../../../generated/prisma/index.js';
-import httpStatus from 'http-status';    
+import httpStatus from 'http-status';
 
 const createContents = async (payload: Prisma.ContentsCreateInput) => {
   const isExists = await prisma.contents.findFirst();
@@ -14,12 +14,13 @@ const createContents = async (payload: Prisma.ContentsCreateInput) => {
   return null;
 };
 
-const updateContents = async (
-  id: string,
-  payload: Prisma.ContentsUpdateInput,
-) => {
+const updateContents = async (payload: Prisma.ContentsUpdateInput) => {
+  const contents = await prisma.contents.findFirst({ where: {} });
+  if (!contents)
+    throw new AppError(httpStatus.BAD_REQUEST, 'initial contents not found ');
+
   const result = await prisma.contents.update({
-    where: { id },
+    where: { id: contents.id },
     data: payload,
   });
 

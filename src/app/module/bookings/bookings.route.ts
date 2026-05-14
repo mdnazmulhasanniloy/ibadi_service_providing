@@ -30,10 +30,17 @@ router.get(
   auth(USER_ROLE.user, USER_ROLE.service_provider),
   bookingsController.getUserBookings,
 );
+
 router.get(
   '/provider-booking',
   auth(USER_ROLE.user, USER_ROLE.service_provider),
   bookingsController.getServiceProviderBookings,
+);
+
+router.get(
+  '/:id',
+  auth(USER_ROLE.user, USER_ROLE.service_provider),
+  bookingsController.getBookingsById,
 );
 router.get(
   '/',

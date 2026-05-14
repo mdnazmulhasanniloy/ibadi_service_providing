@@ -6,7 +6,7 @@ import { USER_ROLE } from '../users/user.constants.js';
 const router: Router = Router();
 
 router.patch(
-  '/:id',
+  '/',
   auth(USER_ROLE.admin, USER_ROLE.sub_admin, USER_ROLE.supper_admin),
   contentController.updateContents,
 );

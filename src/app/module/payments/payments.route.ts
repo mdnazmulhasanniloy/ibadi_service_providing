@@ -11,20 +11,21 @@ router.get(
   auth(USER_ROLE.user),
   paymentsController.autoPayment,
 );
-router.post(
-  '/payment-method/add',
-  auth(USER_ROLE.user),
-  paymentsController.addPaymentMethod,
+
+router.get(
+  '/admin-card',
+  auth(USER_ROLE.admin, USER_ROLE.sub_admin, USER_ROLE.sub_admin),
+  paymentsController.getDashboardCards,
 );
-
-router.get('/form', (req, res) => {
-  res.render('addCard', {
-    clientSecret: req.query.clientSecret,
-    customerId: req.query.customerId,
-  });
-});
-
-router.post('/payment-method/save', paymentsController.savePaymentMethod);
-router.get('/payment-method/list/:customerId', paymentsController.getCardList);
+router.get(
+  '/admin-chart',
+  auth(USER_ROLE.admin, USER_ROLE.sub_admin, USER_ROLE.sub_admin),
+  paymentsController.adminDashboardChart,
+);
+router.get(
+  '/',
+  auth(USER_ROLE.admin, USER_ROLE.sub_admin, USER_ROLE.sub_admin),
+  paymentsController.getAllPayments,
+);
 
 export const paymentsRoutes = router;

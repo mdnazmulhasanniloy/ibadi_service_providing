@@ -23,7 +23,22 @@ get all function
 */
 const getAllFaq = async (query: Record<string, any>) => {
   const { filters, pagination } = await pickQuery(query);
-  const { searchTerm, ...filtersData } = filters;
+  const { searchTerm, include: includeData, ...filtersData } = filters;
+
+  // Dynamic include
+  const include: Record<string, any> = {};
+
+  if (includeData) {
+    const fields = includeData.split(',');
+
+    fields.forEach((field: string) => {
+      const trimmedField = field.trim();
+
+      if (trimmedField) {
+        include[trimmedField] = true;
+      }
+    });
+  }
 
   const where: Prisma.FaqWhereInput = {};
 
@@ -72,6 +87,7 @@ const getAllFaq = async (query: Record<string, any>) => {
       where,
       skip,
       take: limit,
+      include,
       orderBy,
     });
 

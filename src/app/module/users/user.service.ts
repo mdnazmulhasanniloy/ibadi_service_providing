@@ -73,7 +73,7 @@ const getAll = async (query: Record<string, any>) => {
 
   // search condition
   if (searchTerm) {
-    pipeline.OR = ['name', 'email', 'phoneNumber', 'status'].map(field => ({
+    pipeline.OR = ['name', 'email'].map(field => ({
       [field]: {
         contains: searchTerm,
         mode: 'insensitive',
@@ -258,6 +258,7 @@ const serviceProfileInfo = async (userId: string, payload: any) => {
     drivingLicense,
     businessProfiles,
     qualifiedCarer,
+    coverImage,
 
     perHourPrice,
     ...rest
@@ -280,6 +281,7 @@ const serviceProfileInfo = async (userId: string, payload: any) => {
     drivingLicense: takeFirst(drivingLicense),
     businessProfiles: takeFirst(businessProfiles),
     qualifiedCarer: takeFirst(qualifiedCarer),
+    coverImage: takeFirst(coverImage),
   };
 
   const result = await prisma.$transaction(async tx => {

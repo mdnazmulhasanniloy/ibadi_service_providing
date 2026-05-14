@@ -10,38 +10,43 @@ const confirmPayment = catchAsync(async (req: Request, res: Response) => {
 const autoPayment = catchAsync(async (req: Request, res: Response) => {
   const result = await paymentsService.autoPayment(req.user.userId);
 });
-const addPaymentMethod = catchAsync(async (req: Request, res: Response) => {
-  const result = await paymentsService.addPaymentMethod(req.user.userId, res);
+
+const getAllPayments = catchAsync(async (req: Request, res: Response) => {
+  const result = await paymentsService.getAllPayments(req.query);
   sendResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
-    message: 'Payment method saved successfully',
+    message: 'Payment fetch successfully',
     data: result,
   });
 });
 
-const savePaymentMethod = catchAsync(async (req: Request, res: Response) => {
-  const result = await paymentsService.savePaymentMethod(req.body);
+const getDashboardCards = catchAsync(async (req: Request, res: Response) => {
+  const result = await paymentsService.getDashboardCards();
 
   sendResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
-    message: 'Payment method saved successfully',
+    message: 'Dashboard Card fetch successfully',
     data: result,
   });
 });
 
-const getCardList = catchAsync(async (req: Request, res: Response) => {
-  const result = await paymentsService.getCardList(
-    req?.params?.customerId as string,
-    res,
-  );
+const adminDashboardChart = catchAsync(async (req: Request, res: Response) => {
+  const result = await paymentsService.adminDashboardChart(req.query);
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Dashboard Chart data fetch successfully',
+    data: result,
+  });
 });
 
 export const paymentsController = {
   autoPayment,
-  confirmPayment,
-  addPaymentMethod,
-  savePaymentMethod,
-  getCardList,
+  confirmPayment,  
+  getAllPayments,
+  getDashboardCards,
+  adminDashboardChart,
 };

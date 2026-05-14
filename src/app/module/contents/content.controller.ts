@@ -1,6 +1,5 @@
- 
 import catchAsync from '@app/utils/catchAsync.js';
-import { contentsService } from './content.service.js'; 
+import { contentsService } from './content.service.js';
 import sendResponse from '@app/utils/sendResponse.js';
 
 const getContents = catchAsync(async (req, res) => {
@@ -13,10 +12,7 @@ const getContents = catchAsync(async (req, res) => {
   });
 });
 const updateContents = catchAsync(async (req, res) => {
-  const result = await contentsService.updateContents(
-    req.params.id as string,
-    req.body,
-  );
+  const result = await contentsService.updateContents(req.body);
   sendResponse(res, {
     statusCode: 200,
     success: true,
