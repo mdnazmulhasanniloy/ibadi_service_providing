@@ -27,8 +27,21 @@ const blockChat = catchAsync(async (req: Request, res: Response) => {
     data: result,
   });
 });
+const getChatByUserId = catchAsync(async (req: Request, res: Response) => {
+  const result = await chatService.getChatByUserId(
+    req?.params?.receiverId as string,
+    req.user.userId,
+  );
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Chat updated successfully',
+    data: result,
+  });
+});
 
 export const chatController = {
   acceptChat,
   blockChat,
+  getChatByUserId,
 };

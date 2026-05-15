@@ -79,9 +79,12 @@ model User {
   //message
   sendMessages  Messages[] @relation("sender")
   receiverMessages  Messages[] @relation("receiver")
+  callSendHistory  CallHistory[] @relation("sender")
+  callReceiveHistory  CallHistory[] @relation("receiver")
   participants Participants[] 
   payments Payments[] 
   providerPayments Payments[] @relation("ProviderPayments")
+  favorites Favorites[] 
 
 }
 
@@ -109,6 +112,17 @@ model Verification {
   @@id([userId])
 }
 
+
+model Favorites {
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+  userId String @db.ObjectId
+  serviceProviderId String @db.ObjectId
+
+  user User @relation(fields: [userId], references: [id])
+  serviceProvider serviceProviderInfo @relation(fields: [serviceProviderId], references: [userId])
+}
+
+
 model Notification {
   id String @id @default(auto()) @map("_id") @db.ObjectId
   receiverId String? @db.ObjectId
@@ -135,9 +149,7 @@ model workSchedule {
   updatedAt   DateTime @updatedAt
 
 
-  user User @relation(fields: [userId], references: [id])
-
- 
+  user User @relation(fields: [userId], references: [id])  
 }
 
 
@@ -165,7 +177,7 @@ model serviceProviderInfo {
   specialistsIn SpecialistsIn[]
   
   othersRequiredTasks OthersRequiredTasks[]
-  
+  favorites Favorites[] 
 
   @@id([userId])
 }
@@ -362,13 +374,24 @@ model Participants {
   updatedAt DateTime @updatedAt
 
 
-  user User @relation(fields: [userId], references: [id])
+  user User? @relation(fields: [userId], references: [id])
   chat Chat @relation(fields: [chatId], references: [id])
 
   @@unique([chatId, userId])
 
 }
+model CallHistory {
+   id String @id @default(auto()) @map("_id") @db.ObjectId
+   senderId String @db.ObjectId
+   receiverId String @db.ObjectId
 
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+
+  sender User? @relation("sender", fields: [senderId], references: [id])
+  receiver User @relation("receiver",fields: [receiverId], references: [id])
+}
 model Messages{
   id String @id @default(auto()) @map("_id") @db.ObjectId
   text String?

@@ -5,10 +5,10 @@ import sendResponse from '@app/utils/sendResponse.js';
 import { paymentsService } from './payments.service.js';
 
 const confirmPayment = catchAsync(async (req: Request, res: Response) => {
-  const result = await paymentsService.confirmPayment(req.query, res);
+  // const result = await paymentsService.confirmPayment();
 });
 const autoPayment = catchAsync(async (req: Request, res: Response) => {
-  const result = await paymentsService.autoPayment(req.user.userId);
+  // const result = await paymentsService.autoPayment(req.user.userId);
 });
 
 const getAllPayments = catchAsync(async (req: Request, res: Response) => {
@@ -42,11 +42,29 @@ const adminDashboardChart = catchAsync(async (req: Request, res: Response) => {
     data: result,
   });
 });
+const createPayment = catchAsync(async (req: Request, res: Response) => {
+  const body = {
+    ...req.body,
+    userId: req.user.userId,
+  };
+  const result = await paymentsService.checkout(body);
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'payment link get successfully',
+    data: result,
+  });
+});
 
 export const paymentsController = {
   autoPayment,
-  confirmPayment,  
+  confirmPayment,
+  createPayment,
   getAllPayments,
   getDashboardCards,
   adminDashboardChart,
 };
+
+// f#$3!TxNHWFW3rn
+// j3=KPV;a;J4

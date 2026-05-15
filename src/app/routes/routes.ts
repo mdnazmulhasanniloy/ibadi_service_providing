@@ -14,11 +14,16 @@ import { stripeRoutes } from '@app/module/stripe/stripe.route.js';
 import { paymentsRoutes } from '@app/module/payments/payments.route.js';
 import { experienceOptionsRoutes } from '@app/module/experienceOptions/experienceOptions.route.js';
 import { faqRoutes } from '@app/module/faq/faq.route.js';
+import { favoritesRoutes } from '@app/module/favorites/favorites.route.js';
 import { homepageRoutes } from '@app/module/homepage/homepage.route.js';
 
 const router: Router = Router();
 
 const moduleRoutes = [
+  {
+    path: '/favorites',
+    route: favoritesRoutes,
+  },
   {
     path: '/homepage',
     route: homepageRoutes,

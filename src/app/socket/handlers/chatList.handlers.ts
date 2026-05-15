@@ -9,7 +9,7 @@ const getChatList = async (
   payload: { limit?: number; page?: number } = { page: 1, limit: 10 },
   callback: (arg: any) => void,
 ) => {
-  console.log(payload);
+  console.log({ payload, user });
   const { page = 1, limit = 10 } = payload;
   const skip = (page - 1) * limit;
   try {

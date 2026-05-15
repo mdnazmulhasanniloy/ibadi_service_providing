@@ -1,22 +1,17 @@
-    
 import httpStatus from 'http-status';
 import prisma from '@app/shared/prisma.js';
 import {
   BookingStatus,
   PAYMENT_STATUS,
   Role,
-  type Prisma,
 } from '../../../../generated/prisma/index.js';
-import AppError from '@app/error/AppError.js';  
+import AppError from '@app/error/AppError.js';
 import { paginationHelper } from '@app/helpers/pagination.helpers.js';
 import StripeService from '@app/class/string.class.js';
-import type { Response } from 'express';
 import moment from 'moment';
 import _ from 'lodash';
 import { resolveStripeCustomer } from '../bookings/bookings.utils.js';
-import config from '@app/config/index.js';
 import { toFixed2 } from '../bookings/bookings.constants.js';
-import generateCryptoString from '@app/utils/generateCryptoString.js'; 
 import { months } from './payments.constants.js';
 
 interface MonthlyData {
@@ -24,9 +19,17 @@ interface MonthlyData {
   total: number;
 }
 
-const createPayment = async (payload: any) => {
+const checkout = async (payload: any) => {
   const [user, contents, bookings] = await Promise.all([
-    prisma.user.findUnique({ where: { id: payload.userId } }),
+    prisma.user.findUnique({
+      where: { id: payload.userId },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        customerId: true,
+      },
+    }),
     prisma.contents.findFirst({ where: { type: 'main' } }),
     prisma.bookings.findUnique({
       where: { id: payload.bookingId, userId: payload.userId },
@@ -41,7 +44,9 @@ const createPayment = async (payload: any) => {
     where: {
       bookingId: payload.bookingId,
       userId: payload.userId,
-      status: PAYMENT_STATUS.pending,
+      status: {
+        in: [PAYMENT_STATUS.pending, PAYMENT_STATUS.paid],
+      },
     },
     include: {
       user: {
@@ -66,10 +71,9 @@ const createPayment = async (payload: any) => {
     const [createdPayment, customer] = await Promise.all([
       prisma.payments.create({
         data: {
-          userId: payload.userId,
-          providerId: payload.providerId,
+          userId: user.id,
+          providerId: bookings.providerId,
           bookingId: bookings.id,
-          transactionId: generateCryptoString(10),
           amount: bookings.price,
           nextPaymentDate: moment(bookings.startDate).add(1, 'weeks').toDate(),
           adminParentage: adminAmount,
@@ -79,6 +83,8 @@ const createPayment = async (payload: any) => {
       resolveStripeCustomer(user),
     ]);
 
+    // console.log(createdPayment);
+    // return createdPayment;
     payment = createdPayment;
     customerId = customer;
   }
@@ -86,45 +92,73 @@ const createPayment = async (payload: any) => {
   if (!payment) {
     throw new AppError(httpStatus.BAD_REQUEST, 'payment creation failed');
   }
+  if (!customerId) {
+    throw new AppError(httpStatus.BAD_REQUEST, 'Stripe customer not found');
+  }
+
+  // Get default saved payment method
+  const customer =
+    await StripeService.getStripe().customers.retrieve(customerId);
+  const defaultPaymentMethod = (customer as any)?.invoice_settings
+    ?.default_payment_method;
+
+  if (!defaultPaymentMethod) {
+    throw new AppError(httpStatus.BAD_REQUEST, 'No saved card found');
+  }
+
+  const paymentIntent = await StripeService.getStripe().paymentIntents.create({
+    amount: Math.round(payment.amount * 100),
+    currency: 'usd',
+    customer: customerId,
+    payment_method: defaultPaymentMethod as string,
+    off_session: true,
+    confirm: true,
+    metadata: {
+      paymentId: payment.id,
+      bookingId: bookings.id,
+    },
+  });
+
+  if (paymentIntent.status !== 'succeeded') {
+    throw new AppError(httpStatus.BAD_REQUEST, 'Payment  Failed');
+  }
+  const result = await confirmPayment({
+    paymentId: payment.id,
+    paymentIntentId: paymentIntent.id,
+  });
+  return result;
+
   // // 5. Create Stripe checkout session
-  const baseUrl = `${config.server_url}/payments/confirm-payment`;
-  const redirectUrl = `${baseUrl}?sessionId={CHECKOUT_SESSION_ID}&paymentId=${payment.id}`;
+  // const baseUrl = `${config.server_url}/payments/confirm-payment`;
+  // const redirectUrl = `${baseUrl}?sessionId={CHECKOUT_SESSION_ID}&paymentId=${payment.id}`;
 
-  const checkoutSession = await StripeService.getCheckoutSession(
-    { amount: payment.amount, name: 'Service Provider Booking', quantity: 1 },
-    redirectUrl, // success_url
-    redirectUrl, // cancel_url (same as original)
-    customerId as string,
-  );
+  // const checkoutSession = await StripeService.getCheckoutSession(
+  //   { amount: payment.amount, name: 'Service Provider Booking', quantity: 1 },
+  //   redirectUrl, // success_url
+  //   redirectUrl, // cancel_url (same as original)
+  //   customerId as string,
+  // );
 
-  if (!checkoutSession?.url)
-    throw new AppError(
-      httpStatus.BAD_REQUEST,
-      'Failed to create checkout session',
-    );
+  // if (!checkoutSession?.url)
+  //   throw new AppError(
+  //     httpStatus.BAD_REQUEST,
+  //     'Failed to create checkout session',
+  //   );
 
-  return checkoutSession.url;
+  // return checkoutSession.url;
 };
 
-const confirmPayment = async (query: Record<string, any>, res: Response) => {
-  const { sessionId, paymentId } = query;
+const confirmPayment = async (payload: {
+  paymentId: string;
+  paymentIntentId: string;
+}) => {
+  const { paymentId, paymentIntentId } = payload;
 
-  const PaymentSession = await StripeService.getPaymentSession(sessionId);
-  const paymentIntentId = PaymentSession.payment_intent as string;
+  const stripe = StripeService.getStripe();
 
-  const paymentIntent =
-    await StripeService.getStripe().paymentIntents.retrieve(paymentIntentId);
-
-  if (!(await StripeService.isPaymentSuccess(sessionId))) {
-    await prisma.payments.update({
-      where: { id: paymentId },
-      data: { status: PAYMENT_STATUS.canceled },
-    });
-
-    return res.render('paymentError', {
-      message: 'Payment session is not completed',
-      device: '',
-    });
+  const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
+  if (paymentIntent.status !== 'succeeded') {
+    throw new AppError(httpStatus.BAD_REQUEST, 'Payment not successful');
   }
 
   try {
@@ -140,17 +174,11 @@ const confirmPayment = async (query: Record<string, any>, res: Response) => {
     });
 
     if (!isPaymentHave) {
-      return res.render('paymentError', {
-        message: 'Payment not found',
-        device: '',
-      });
+      throw new AppError(httpStatus.BAD_REQUEST, 'Payment not found');
     }
 
     if (isPaymentHave.status !== PAYMENT_STATUS.pending) {
-      return res.render('paymentError', {
-        message: 'Payment already processed',
-        device: '',
-      });
+      throw new AppError(httpStatus.BAD_REQUEST, 'Payment already processed');
     }
 
     const charge = await StripeService.getStripe().charges.retrieve(
@@ -158,10 +186,7 @@ const confirmPayment = async (query: Record<string, any>, res: Response) => {
     );
 
     if (charge?.refunded) {
-      return res.render('paymentError', {
-        message: 'Payment has been refunded',
-        device: '',
-      });
+      throw new AppError(httpStatus.BAD_REQUEST, 'Payment has been refunded');
     }
 
     const paymentDate = moment.unix(charge.created).toDate();
@@ -177,7 +202,7 @@ const confirmPayment = async (query: Record<string, any>, res: Response) => {
       paymentDate: paymentDate,
       receipt_url: charge?.receipt_url,
     };
-
+    console.log(chargeDetails);
     // ✅ Transaction start
     await prisma.$transaction(async tx => {
       // =========================
@@ -188,7 +213,7 @@ const confirmPayment = async (query: Record<string, any>, res: Response) => {
           where: { id: paymentId },
           data: {
             status: PAYMENT_STATUS.paid,
-            transactionId: chargeDetails.transactionId as string,
+            transactionId: paymentIntent.id as string,
             paymentMethod: chargeDetails.paymentMethod,
             paidAt: paymentDate,
             booking: {
@@ -212,7 +237,7 @@ const confirmPayment = async (query: Record<string, any>, res: Response) => {
         where: { id: paymentId },
         data: {
           status: PAYMENT_STATUS.paid,
-          transactionId: chargeDetails.transactionId as string,
+          transactionId: paymentIntent?.id as string,
           paymentMethod: chargeDetails.paymentMethod,
           paidAt: paymentDate,
           nextPaymentDate: moment(isPaymentHave.booking.startDate)
@@ -303,32 +328,32 @@ const confirmPayment = async (query: Record<string, any>, res: Response) => {
       }
     });
 
-    // ✅ Success
-    return res.render('paymentSuccess', {
-      message: 'Payment confirmed successfully',
-      device: '',
-      paymentDetails: {
-        ...chargeDetails,
-        paymentDate: moment(paymentDate).format('lll'),
-      },
-      bookingId: paymentId,
-    });
+    return isPaymentHave;
   } catch (error: any) {
-    console.error(error);
-
-    // ❗ error হলে refund try
     if (paymentIntentId) {
       try {
-        await StripeService.refund(paymentIntentId);
+        const stripe = StripeService.getStripe();
+
+        const paymentIntent =
+          await stripe.paymentIntents.retrieve(paymentIntentId);
+
+        const chargeId = paymentIntent.latest_charge as string;
+
+        if (chargeId) {
+          const charge = await stripe.charges.retrieve(chargeId);
+
+          if (!charge.refunded) {
+            await StripeService.refund(paymentIntentId);
+          }
+        }
       } catch (refundError: any) {
         console.error('Refund error:', refundError.message);
       }
     }
-
-    return res.render('paymentError', {
-      message: error.message || 'Server internal error',
-      device: '',
-    });
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      error.message || 'Server internal error',
+    );
   }
 };
 
@@ -354,25 +379,6 @@ const getAllPayments = async (query: Record<string, any>) => {
     },
     data: payments,
   };
-};
-
-const autoPayment = async (userId: string) => {
-  const user = await prisma.user.findUnique({
-    where: {
-      id: userId,
-    },
-  });
-
-  const paymentIntent = await StripeService.getStripe().paymentIntents.create({
-    amount: 5000,
-    currency: 'usd',
-    customer: user?.customerId as string,
-    // payment_method: 'pm_xxx', // optional if default set
-    off_session: true,
-    confirm: true,
-  });
-
-  console.log(paymentIntent);
 };
 
 // const addPaymentMethod = async (userId: string, res: Response) => {
@@ -494,6 +500,7 @@ const adminDashboardChart = async (query: Record<string, any>) => {
 
   const userData = await prisma.user.findMany({
     where: {
+      OR: [{ role: Role.service_provider }, { role: Role.user }],
       verification: {
         is: {
           status: true,
@@ -547,13 +554,10 @@ const adminDashboardChart = async (query: Record<string, any>) => {
   };
 };
 
+//@te-ignore
 export const paymentsService = {
+  checkout,
   confirmPayment,
-  autoPayment,
-  // addPaymentMethod,
-  // savePaymentMethod,
-  // getCardList,
-  createPayment,
   getAllPayments,
   getDashboardCards,
   adminDashboardChart,

@@ -54,7 +54,7 @@ export const bookingWorker = new Worker(
     // সব schedule শেষ → booking complete
     if (!nextSchedule) {
       await prisma.bookings.update({
-        where: { id: bookingId },
+        where: { id: bookingId },   
         data: { status: 'complete' },
       });
       await bookingQueue.remove(`weekly-${bookingId}`);

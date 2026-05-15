@@ -1,5 +1,5 @@
 import getUserDetailsFromToken from '@app/helpers/getUserDetailsFromToken.js';
-import { Socket } from 'socket.io'; 
+import { Socket } from 'socket.io';
 
 export const socketAuthMiddleware = async (
   socket: Socket,
@@ -8,9 +8,9 @@ export const socketAuthMiddleware = async (
   try {
     const token =
       socket.handshake.auth?.token || socket.handshake.headers?.token;
- 
+    console.log(token);
 
-    const user = await getUserDetailsFromToken(token); 
+    const user = await getUserDetailsFromToken(token);
     if (!user) return next(new Error('Authentication failed'));
 
     // Attach user to socket (use type assertion if needed)

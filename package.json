@@ -8,6 +8,7 @@
     "@app": "dist/app"
   },
   "scripts": {
+    "seed": "tsx prisma/seed.db.ts",
     "dev": "tsx watch src/server.ts",
     "build": "tsc -p tsconfig.json && tsc-alias -p tsconfig.json",
     "start": "node  dist/server.js",

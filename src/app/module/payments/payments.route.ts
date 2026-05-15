@@ -5,6 +5,11 @@ import { USER_ROLE } from '../users/user.constants.js';
 
 const router: Router = Router();
 
+router.post(
+  '/payout',
+  auth(USER_ROLE.user, USER_ROLE.service_provider),
+  paymentsController.createPayment,
+);
 router.get('/confirm-payment', paymentsController.confirmPayment);
 router.get(
   '/auto-payment',
