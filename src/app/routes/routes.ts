@@ -16,10 +16,15 @@ import { experienceOptionsRoutes } from '@app/module/experienceOptions/experienc
 import { faqRoutes } from '@app/module/faq/faq.route.js';
 import { favoritesRoutes } from '@app/module/favorites/favorites.route.js';
 import { homepageRoutes } from '@app/module/homepage/homepage.route.js';
+import { callHistoryRoutes } from '@app/module/callHistory/callHistory.route.js';
 
 const router: Router = Router();
 
 const moduleRoutes = [
+  {
+    path: '/call-history',
+    route: callHistoryRoutes,
+  },
   {
     path: '/favorites',
     route: favoritesRoutes,

@@ -383,7 +383,7 @@ model Participants {
 model CallHistory {
    id String @id @default(auto()) @map("_id") @db.ObjectId
    senderId String @db.ObjectId
-   receiverId String @db.ObjectId
+   receiverId String @db.ObjectId 
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
