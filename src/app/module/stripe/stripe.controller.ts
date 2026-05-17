@@ -74,6 +74,7 @@ const deleteCard = catchAsync(async (req: Request, res: Response) => {
     data: result,
   });
 });
+
 const setDefaultCard = catchAsync(async (req: Request, res: Response) => {
   const result = await stripeService.setDefaultCard(
     req.params.paymentMethodId as string,
@@ -88,6 +89,36 @@ const setDefaultCard = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+const stripLinkAccount = catchAsync(async (req: Request, res: Response) => {
+  const result = await stripeService.stripLinkAccount(req?.user?.userId);
+  sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    data: result,
+    message: 'Account creation URL generated successfully.',
+  });
+});
+
+const refresh = catchAsync(async (req: Request, res: Response) => {
+  const result = await stripeService.refresh(
+    req.params?.id as string,
+    req.query,
+  );
+
+  // Remove sendResponse after res.redirect to avoid setting headers twice
+  res.redirect(result);
+});
+
+const returnUrl = catchAsync(async (req: Request, res: Response) => {
+  const result = await stripeService.returnUrl(req.query);
+  sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    data: result,
+    message: 'Stripe account updated successfully.',
+  });
+});
+
 export const stripeController = {
   addStripeCard,
   getStripeCardAddPage,
@@ -95,4 +126,7 @@ export const stripeController = {
   getCardList,
   deleteCard,
   setDefaultCard,
+  stripLinkAccount,
+  refresh,
+  returnUrl,
 };

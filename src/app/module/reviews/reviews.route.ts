@@ -20,6 +20,7 @@ router.delete(
   reviewsController.deleteReviews,
 );
 router.get('/user/:userId', reviewsController.getReviewsByUserId);
+router.get('/statistic/:userId', reviewsController.getReviewStatistics);
 router.get('/:id', reviewsController.getReviewsById);
 router.get('/', reviewsController.getAllReviews);
 

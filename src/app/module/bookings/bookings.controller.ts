@@ -84,9 +84,7 @@ const updateBookings = catchAsync(async (req: Request, res: Response) => {
 });
 
 const acceptBookings = catchAsync(async (req: Request, res: Response) => {
-  const result = await bookingsService.updateBookings(req.params.id as string, {
-    status: BookingStatus.accepted,
-  });
+  const result = await bookingsService.approvedRequest(req.params.id as string);
 
   if (result.userId) {
     const userNotification = {
@@ -110,9 +108,7 @@ const acceptBookings = catchAsync(async (req: Request, res: Response) => {
 });
 
 const canceledBookings = catchAsync(async (req: Request, res: Response) => {
-  const result = await bookingsService.updateBookings(req.params.id as string, {
-    status: BookingStatus.accepted,
-  });
+  const result = await bookingsService.canceledRequest(req.params.id as string);
 
   if (result.userId) {
     const userNotification = {

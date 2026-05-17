@@ -27,6 +27,15 @@ router.post(
   stripeController.setDefaultCard,
 );
 
+// connect account routes
+router.patch(
+  '/connect',
+  auth(USER_ROLE.service_provider),
+  stripeController.stripLinkAccount,
+);
+router.get('/return', stripeController.returnUrl);
+router.get('/refresh/:id', stripeController.refresh);
+
 // Get all saved cards
 router.get(
   '/payment-method',

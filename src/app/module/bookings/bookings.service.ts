@@ -4,9 +4,13 @@ import _ from 'lodash';
 import moment from 'moment';
 import httpStatus from 'http-status';
 import pickQuery from '@app/utils/pickQuery.js';
-import type { Prisma } from '../../../../generated/prisma/index.js';
+import {
+  BookingStatus,
+  type Prisma,
+} from '../../../../generated/prisma/index.js';
 import { paginationHelper } from '@app/helpers/pagination.helpers.js';
 import { notificationQueue } from '@app/redis/index.js';
+import StripeService from '@app/class/string.class.js';
 
 const createBookings = async (payload: any) => {
   // 1. Validate user early — before writing any records
@@ -327,9 +331,87 @@ const updateBookings = async (id: string, payload: any) => {
   return result;
 };
 
+const approvedRequest = async (id: String) => {
+  const result = await prisma.bookings.update({
+    where: {
+      id: id?.toString(),
+    },
+    data: {
+      status: BookingStatus.ongoing,
+      isActive: true,
+    },
+  });
+
+  if (!result) {
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      'Booking request approved failed',
+    );
+  }
+
+  return result;
+};
+
+const canceledRequest = async (id: string) => {
+  return await prisma.$transaction(async tx => {
+    const result = await tx.bookings.update({
+      where: {
+        id,
+      },
+      data: {
+        status: BookingStatus.canceled,
+        isActive: false,
+      },
+      include: {
+        payments: {
+          select: {
+            transactionId: true,
+          },
+        },
+      },
+    });
+
+    if (!result) {
+      throw new AppError(
+        httpStatus.BAD_REQUEST,
+        'Booking request cancel failed',
+      );
+    }
+
+    const transactionId = result?.payments[0]?.transactionId;
+
+    if (!transactionId) {
+      throw new AppError(
+        httpStatus.BAD_REQUEST,
+        'Payment transaction id not found',
+      );
+    }
+
+    try {
+      const stripe = StripeService.getStripe();
+
+      // 🔥 Direct refund using paymentIntent (recommended)
+      await stripe.refunds.create({
+        payment_intent: transactionId,
+      });
+    } catch (error: any) {
+      console.error('Refund error:', error.message);
+
+      throw new AppError(
+        httpStatus.BAD_REQUEST,
+        'Refund failed, booking not canceled',
+      );
+    }
+
+    return result;
+  });
+};
+
 export const bookingsService = {
   createBookings,
   getAllBookings,
   getBookingsById,
   updateBookings,
+  approvedRequest,
+  canceledRequest,
 };

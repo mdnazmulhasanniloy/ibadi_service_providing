@@ -136,6 +136,7 @@ const getAll = async (query: Record<string, any>) => {
           status: true,
         },
       },
+      address: true,
       workSchedule: true,
       serviceProviderInfo: {
         include: {
@@ -187,7 +188,10 @@ const getById = async (id: string) => {
           status: true,
         },
       },
+      address: true,
       workSchedule: true,
+      totalReview: true,
+      avgRating: true,
       serviceProviderInfo: {
         include: {
           images: true,

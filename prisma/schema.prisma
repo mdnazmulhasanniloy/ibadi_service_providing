@@ -34,6 +34,7 @@ model Contents {
 
  @@map("contents")
 } 
+
 model Faq {
   id String @id @default(auto()) @map("_id") @db.ObjectId
   question String 
@@ -58,6 +59,8 @@ model User {
   profile     String?
   phoneNumber String?
   customerId String?
+  avgRating   Float   @default(0)
+  totalReview Int     @default(0)
   location   Json?
   expireAt    DateTime? @default(now())
   isDeleted   Boolean  @default(false)
@@ -85,6 +88,7 @@ model User {
   payments Payments[] 
   providerPayments Payments[] @relation("ProviderPayments")
   favorites Favorites[] 
+  address Address[] 
 
 }
 
@@ -112,6 +116,30 @@ model Verification {
   @@id([userId])
 }
 
+model Address {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  
+  userId      String   @db.ObjectId
+  user        User     @relation(fields: [userId], references: [id])
+
+
+
+  addressLine1 String?
+  addressLine2 String?
+
+  city        String?
+  state       String?
+  postalCode  String?
+  country     String?
+
+  location    Json
+
+  isDefault   Boolean  @default(false)
+  isDeleted   Boolean  @default(false)
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
 
 model Favorites {
   id String @id @default(auto()) @map("_id") @db.ObjectId
@@ -156,6 +184,7 @@ model workSchedule {
 model serviceProviderInfo {
       
   userId    String   @map("_id") @db.ObjectId 
+  stripeAccountId String?
   palliativeCare String?
   coverImage String?
   drivingLicense String?
@@ -283,10 +312,11 @@ model Reviews {
 model Bookings {
   id String @id @default(auto()) @map("_id") @db.ObjectId
   userId String @db.ObjectId
+  addressId String? @db.ObjectId
   providerId   String        @db.ObjectId
   isPaid Boolean @default(false)
   bookingType BOOKING_TYPE @default(one_time) 
-  status BookingStatus @default(requested)
+  status BookingStatus @default(pending)
   price Float
   startDate DateTime
   endDate DateTime? // For weekly: when the recurring booking ends (null = unlimited)
@@ -380,10 +410,14 @@ model Participants {
   @@unique([chatId, userId])
 
 }
+
+
 model CallHistory {
    id String @id @default(auto()) @map("_id") @db.ObjectId
    senderId String @db.ObjectId
    receiverId String @db.ObjectId 
+   type CALL_TYPE @default(audio_call)
+
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -392,6 +426,8 @@ model CallHistory {
   sender User? @relation("sender", fields: [senderId], references: [id])
   receiver User @relation("receiver",fields: [receiverId], references: [id])
 }
+
+
 model Messages{
   id String @id @default(auto()) @map("_id") @db.ObjectId
   text String?
@@ -449,6 +485,7 @@ enum RecurringStatus {
 
 
 enum BookingStatus {
+  pending
   requested
   accepted 
   ongoing
@@ -487,6 +524,11 @@ enum Days {
   Fri   
   Sat   
   Sun  
+}
+
+enum CALL_TYPE {
+  audio_call
+  video_call
 }
  
 enum Role {

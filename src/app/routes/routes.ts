@@ -17,10 +17,15 @@ import { faqRoutes } from '@app/module/faq/faq.route.js';
 import { favoritesRoutes } from '@app/module/favorites/favorites.route.js';
 import { homepageRoutes } from '@app/module/homepage/homepage.route.js';
 import { callHistoryRoutes } from '@app/module/callHistory/callHistory.route.js';
+import { addressRoutes } from '@app/module/address/address.route.js';
 
 const router: Router = Router();
 
 const moduleRoutes = [
+  {
+    path: "/address",
+    route: addressRoutes,
+  },
   {
     path: '/call-history',
     route: callHistoryRoutes,

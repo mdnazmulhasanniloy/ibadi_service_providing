@@ -10,6 +10,7 @@ import { paginationHelper } from '@app/helpers/pagination.helpers.js';
 const createWorkSchedule = async (
   payload: Prisma.workScheduleCreateManyInput,
 ) => {
+  await prisma.workSchedule.deleteMany({ where: { userId: payload?.userId } });
   const result = await prisma.workSchedule.createMany({
     data: payload,
   });

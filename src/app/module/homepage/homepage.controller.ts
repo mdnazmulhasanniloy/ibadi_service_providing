@@ -13,7 +13,17 @@ const getAllHomepage = catchAsync(async (req: Request, res: Response) => {
     data: result,
   });
 });
+const getAvailableSlots = catchAsync(async (req: Request, res: Response) => {
+  const result = await homepageService.getAvailableSlots(req.body);
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Homepage created successfully',
+    data: result,
+  });
+});
 
 export const homepageController = {
   getAllHomepage,
+  getAvailableSlots,
 };

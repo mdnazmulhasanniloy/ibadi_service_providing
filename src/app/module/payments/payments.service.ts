@@ -218,7 +218,8 @@ const confirmPayment = async (payload: {
             paidAt: paymentDate,
             booking: {
               update: {
-                isActive: true,
+                status: BookingStatus.requested,
+                isActive: false,
                 isPaid: true,
               },
             },
@@ -245,7 +246,7 @@ const confirmPayment = async (payload: {
             .toDate(),
           booking: {
             update: {
-              status: BookingStatus.ongoing,
+              status: BookingStatus.requested,
               isActive: true,
               isPaid: true,
               endDate: moment(isPaymentHave?.booking?.startDate)

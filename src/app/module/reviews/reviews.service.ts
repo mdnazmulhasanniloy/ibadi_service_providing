@@ -1,34 +1,48 @@
 import httpStatus from 'http-status';
-import type { Prisma } from '../../../../generated/prisma/index.js';
+import { Prisma } from '../../../../generated/prisma/index.js';
 import prisma from '@app/shared/prisma.js';
 import AppError from '@app/error/AppError.js';
 import pickQuery from '@app/utils/pickQuery.js';
 import { paginationHelper } from '@app/helpers/pagination.helpers.js';
 
-//Create Function
 const createReviews = async (payload: Prisma.ReviewsCreateInput) => {
   try {
-    // Use a transaction to ensure both operations succeed or fail together
-
     const { orderId, ...data }: any = payload;
 
-    const [review] = await prisma.$transaction([
-      prisma.reviews.create({
-        data: data,
-      }),
-      // prisma.orders.update({
-      //   where: { id: orderId },
-      //   data: { isReviewed: true },
-      // }),
-    ]);
+    const result = await prisma.$transaction(async tx => {
+      // 1️⃣ Create review
+      const review = await tx.reviews.create({
+        data,
+      });
 
-    // console.log(orderUpdate);
+      // 2️⃣ Calculate avg + total
+      const stats = await tx.reviews.aggregate({
+        where: {
+          userId: data.userId,
+        },
+        _avg: {
+          rating: true,
+        },
+        _count: {
+          rating: true,
+        },
+      });
 
-    return review;
+      // 3️⃣ Update user
+      await tx.user.update({
+        where: { id: data.userId },
+        data: {
+          avgRating: stats._avg.rating || 0,
+          totalReview: stats._count.rating || 0,
+        },
+      });
+
+      return review;
+    });
+
+    return result;
   } catch (error: any) {
-    // Catch duplicate review attempt
     if (
-      //@ts-ignore
       error instanceof Prisma.PrismaClientKnownRequestError &&
       error.code === 'P2002'
     ) {
@@ -136,7 +150,7 @@ const getReviewsById = async (id: string) => {
       where: {
         id,
       },
-       include: {
+      include: {
         user: {
           select: {
             id: true,
@@ -155,7 +169,7 @@ const getReviewsById = async (id: string) => {
             profile: true,
           },
         },
-      }
+      },
     });
 
     if (!result) throw new Error('Reviews not found!');
@@ -196,10 +210,38 @@ const deleteReviews = async (id: string) => {
   return result;
 };
 
+const getReviewStatistics = async (userId: string) => {
+  const reviews = await prisma.reviews.findMany({
+    where: { userId },
+    select: { rating: true },
+  });
+
+  const stats = {
+    1: 0,
+    2: 0,
+    3: 0,
+    4: 0,
+    5: 0,
+  };
+
+  reviews.forEach(review => {
+    // round rating to nearest star
+    let star = Math.round(review.rating);
+
+    // safety clamp (1–5 range)
+    if (star < 1) star = 1;
+    if (star > 5) star = 5;
+
+    stats[star as 1 | 2 | 3 | 4 | 5]++;
+  });
+
+  return stats;
+};
 export const reviewsService = {
   createReviews,
   getAllReviews,
   getReviewsById,
   updateReviews,
   deleteReviews,
+  getReviewStatistics,
 };

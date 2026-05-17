@@ -74,8 +74,6 @@ const getCardList = async (
 
     const customer: any = await StripeService.getCustomer(user!.customerId);
 
-
-    
     // const customer =
     await StripeService.getStripe().customers.retrieve(customer.id as string);
 
@@ -195,10 +193,117 @@ const setDefaultCard = async (paymentMethodId: string, userId: string) => {
     message: 'Default card updated successfully',
   };
 };
+
+const stripLinkAccount = async (userId: string) => {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: {
+      id: true,
+      email: true,
+      name: true,
+    },
+  });
+
+  if (!user) {
+    throw new AppError(httpStatus.BAD_REQUEST, 'User not found!');
+  }
+  let account;
+
+  try {
+    const accounts = await StripeService.getStripe().accounts.list();
+    const isExistsAccount = accounts.data.find(
+      acc => acc.email === user?.email,
+    );
+    if (isExistsAccount) {
+      account = isExistsAccount;
+    } else {
+      account = await StripeService.getStripe().accounts.create({
+        type: 'express',
+        capabilities: {
+          transfers: { requested: true },
+          card_payments: { requested: true },
+        },
+        business_type: 'individual',
+        email: user?.email,
+      });
+
+      console.log(account);
+    }
+
+    const refresh_url = `${config?.server_url}/stripe/refresh/${account.id}?userId=${user?.id}`;
+
+    const return_url = `${config?.server_url}/stripe/return?userId=${user.id}&stripeAccountId=${account.id}`;
+    const accountLink = await StripeService.connectAccount(
+      return_url,
+      refresh_url,
+      account?.id,
+    );
+
+    return accountLink.url;
+  } catch (error: any) {
+    console.log(error);
+    throw new AppError(httpStatus.BAD_GATEWAY, error.message);
+  }
+};
+
+const refresh = async (accountId: string, query: Record<string, any>) => {
+  const user = await prisma.user.findUnique({
+    where: {
+      id: query.userId,
+    },
+    select: {
+      id: true,
+      name: true,
+      email: true,
+    },
+  });
+
+  if (!user) {
+    throw new AppError(httpStatus.BAD_REQUEST, 'User not found!');
+  }
+
+  try {
+    const refresh_url = `${config?.server_url}/stripe/refresh/${accountId}?userId=${user?.id}`;
+
+    const return_url = `${config?.server_url}/stripe/return?userId=${user.id}&stripeAccountId=${accountId}`;
+    const accountLink = await StripeService.connectAccount(
+      return_url,
+      refresh_url,
+      accountId,
+    );
+    return accountLink.url;
+  } catch (error: any) {
+    throw new AppError(httpStatus.BAD_REQUEST, error.message);
+  }
+};
+
+const returnUrl = async (payload: Record<string, any>) => {
+  try {
+    const user = await prisma.serviceProviderInfo.update({
+      where: {
+        userId: payload.userId,
+      },
+      data: {
+        stripeAccountId: payload?.stripeAccountId as string,
+      },
+    });
+
+    if (!user) {
+      throw new AppError(httpStatus.BAD_REQUEST, 'user not found!');
+    }
+    return { url: config?.client_Url };
+  } catch (error: any) {
+    throw new AppError(httpStatus.BAD_REQUEST, error.message);
+  }
+};
+
 export const stripeService = {
   addStripeCard,
   setupInitiate,
   getCardList,
   deleteCard,
   setDefaultCard,
+  stripLinkAccount,
+  refresh,
+  returnUrl,
 };

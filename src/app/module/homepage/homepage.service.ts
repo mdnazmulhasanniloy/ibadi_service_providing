@@ -5,6 +5,8 @@ import type { Days, Prisma } from '../../../../generated/prisma/index.js';
 import AppError from '@app/error/AppError.js';
 import pickQuery from '@app/utils/pickQuery.js';
 import { paginationHelper } from '@app/helpers/pagination.helpers.js';
+import moment from 'moment';
+import { dayMap, type Slot } from './homepage.constants.js';
 
 // const getAllHomepage = async (query: Record<string, any>) => {
 //   const { filters, pagination } = await pickQuery(query);
@@ -299,39 +301,6 @@ const resolveFlexibleSlot = (
   };
   return slotMap[slot] ?? null;
 };
-
-// ─────────────────────────────────────────────
-// QUERY FIELDS ALLOWED
-// ─────────────────────────────────────────────
-//
-// Callers supply these as URL query-params (all optional):
-//
-//  SCHEDULING
-//   bookingType        "one_time" | "weekly"
-//   date               "2025-01-13"          (one_time)
-//   days               "Mon,Wed,Fri"         (weekly – comma-separated)
-//   startTimeType      "flexible" | "exact"
-//   flexibleSlot       "9-12" | "12-15" | … (when startTimeType=flexible)
-//   startTime          "14:00"               (when startTimeType=exact, HH:mm)
-//   endTime            "16:00"               (when startTimeType=exact, HH:mm)
-//   duration           "2"                   (hours, used to compute endTime when exact)
-//
-//  PROVIDER ATTRS
-//   searchTerm
-//   categoryId                               (specialistsIn – single)
-//   categoryIds        "id1,id2"             (specialistsIn – multi-checkbox)
-//   experienceOptionId
-//   otherTaskIds       "id1,id2"
-//   minPrice
-//   maxPrice
-//   qualifiedCarer     "true"
-//   palliativeCare     "true"
-//   drivingLicense     "true"
-//   businessProfiles   "true"
-
-// ─────────────────────────────────────────────
-// MAIN SERVICE
-// ─────────────────────────────────────────────
 
 const getAllHomepage = async (query: Record<string, any>) => {
   const { filters, pagination } = await pickQuery(query);
@@ -638,8 +607,11 @@ const getAllHomepage = async (query: Record<string, any>) => {
               phoneNumber: true,
               profile: true,
               location: true,
+              totalReview: true,
+              avgRating: true,
             },
           },
+
           experience: true,
           specialistsIn: { include: { category: true } },
           othersRequiredTasks: { include: { othersTask: true } },
@@ -664,6 +636,89 @@ const getAllHomepage = async (query: Record<string, any>) => {
   }
 };
 
+const getAvailableSlots = async (payload: {
+  providerId: string;
+  date: Date;
+  slotDuration: number;
+}) => {
+  const { providerId, date, slotDuration } = payload;
+
+  // 👉 requested day (IMPORTANT)
+  const baseDate = moment.utc(date).startOf('day');
+
+  const day = dayMap[baseDate.day()];
+
+  // 1. Get work schedules
+  const schedules = await prisma.workSchedule.findMany({
+    where: {
+      userId: providerId,
+      day,
+      status: true,
+    },
+  });
+
+  if (!schedules.length) return [];
+
+  // 2. Get booked slots for that day
+  const booked = await prisma.bookingDays.findMany({
+    where: {
+      booking: { providerId },
+      startTime: {
+        gte: baseDate.clone().startOf('day').toDate(),
+        lte: baseDate.clone().endOf('day').toDate(),
+      },
+      status: { not: 'canceled' },
+    },
+  });
+
+  const bookedSlots = booked.map(b => ({
+    start: moment.utc(b.startTime),
+    end: moment.utc(b.endTime),
+  }));
+
+  let availableSlots: Slot[] = [];
+
+  // 3. Generate slots properly
+  for (const s of schedules) {
+    const startTime = moment.utc(s.startTime);
+    const endTime = moment.utc(s.endTime);
+
+    // 👉 merge schedule time with requested date (CRITICAL FIX)
+    let cursor = baseDate
+      .clone()
+      .hour(startTime.hour())
+      .minute(startTime.minute())
+      .second(0);
+
+    const end = baseDate
+      .clone()
+      .hour(endTime.hour())
+      .minute(endTime.minute())
+      .second(0);
+
+    while (cursor.clone().add(slotDuration, 'minutes').isSameOrBefore(end)) {
+      const slotStart = cursor.clone();
+      const slotEnd = cursor.clone().add(slotDuration, 'minutes');
+
+      const isOverlapping = bookedSlots.some(
+        b => slotStart.isBefore(b.end) && slotEnd.isAfter(b.start),
+      );
+
+      if (!isOverlapping) {
+        availableSlots.push({
+          start: slotStart.toDate(),
+          end: slotEnd.toDate(),
+        });
+      }
+
+      cursor.add(slotDuration, 'minutes');
+    }
+  }
+
+  return availableSlots;
+};
+
 export const homepageService = {
   getAllHomepage,
+  getAvailableSlots,
 };

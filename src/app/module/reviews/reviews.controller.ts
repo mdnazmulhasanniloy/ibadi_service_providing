@@ -29,8 +29,12 @@ const getAllReviews = catchAsync(async (req: Request, res: Response) => {
   });
 });
 const getReviewsByUserId = catchAsync(async (req: Request, res: Response) => {
-  req.query['userId'] = req.params.userId;
-  const result = await reviewsService.getAllReviews(req.query);
+  const query = {
+    ...req.query,
+    userId: req?.params?.userId,
+  };
+  console.log(query);
+  const result = await reviewsService.getAllReviews(query);
   sendResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
@@ -45,6 +49,17 @@ const getReviewsById = catchAsync(async (req: Request, res: Response) => {
     statusCode: httpStatus.OK,
     success: true,
     message: 'Reviews fetched successfully',
+    data: result,
+  });
+});
+const getReviewStatistics = catchAsync(async (req: Request, res: Response) => {
+  const result = await reviewsService.getReviewStatistics(
+    req.params.userId as string,
+  );
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Reviews statistics fetched successfully',
     data: result,
   });
 });
@@ -76,4 +91,5 @@ export const reviewsController = {
   // updateReviews,
   getReviewsByUserId,
   deleteReviews,
+  getReviewStatistics,
 };
