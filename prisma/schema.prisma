@@ -53,6 +53,7 @@ model User {
   id          String   @id @default(auto()) @map("_id") @db.ObjectId
   name        String?
   email       String   @unique
+  bio String?
   password    String?
   status      status   @default(active)
   role        Role     @default(user)
@@ -185,7 +186,8 @@ model serviceProviderInfo {
       
   userId    String   @map("_id") @db.ObjectId 
   stripeAccountId String?
-  palliativeCare String?
+  palliativeCare String? 
+  bio String?
   coverImage String?
   drivingLicense String?
   businessProfiles String?

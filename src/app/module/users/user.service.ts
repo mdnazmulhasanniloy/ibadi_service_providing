@@ -263,8 +263,8 @@ const serviceProfileInfo = async (userId: string, payload: any) => {
     businessProfiles,
     qualifiedCarer,
     coverImage,
-
     perHourPrice,
+
     ...rest
   } = payload;
 
@@ -279,7 +279,7 @@ const serviceProfileInfo = async (userId: string, payload: any) => {
   // ── normalize file fields ──
   const data = {
     ...rest,
-    perHourPrice,
+    ...((perHourPrice && { perHourPrice: Number(perHourPrice) }) || {}),
 
     palliativeCare: takeFirst(palliativeCare),
     drivingLicense: takeFirst(drivingLicense),

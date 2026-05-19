@@ -3,7 +3,6 @@ import type { Request, Response } from 'express';
 import catchAsync from '@app/utils/catchAsync.js';
 import sendResponse from '@app/utils/sendResponse.js';
 import { bookingsService } from './bookings.service.js';
-import { BookingStatus } from '../../../../generated/prisma/index.js';
 import { notificationQueue } from '@app/redis/index.js';
 
 const createBookings = catchAsync(async (req: Request, res: Response) => {
