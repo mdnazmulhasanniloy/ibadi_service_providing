@@ -352,7 +352,7 @@ const approvedRequest = async (id: String) => {
   return result;
 };
 
-const canceledRequest = async (id: string) => {
+const rejectBookings = async (id: string) => {
   return await prisma.$transaction(async tx => {
     const result = await tx.bookings.update({
       where: {
@@ -407,11 +407,33 @@ const canceledRequest = async (id: string) => {
   });
 };
 
+const canceledBookings = async (id: string) => {
+  const result = await prisma.bookings.update({
+    where: {
+      id,
+    },
+    data: {
+      status: BookingStatus.canceled,
+      isActive: false,
+    },
+  });
+
+  if (!result) {
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      'Booking request cancel failed',
+    );
+  }
+
+  return result;
+}
+
 export const bookingsService = {
   createBookings,
   getAllBookings,
   getBookingsById,
   updateBookings,
   approvedRequest,
-  canceledRequest,
+  rejectBookings,
+  canceledBookings,
 };

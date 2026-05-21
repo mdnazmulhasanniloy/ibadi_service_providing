@@ -129,6 +129,8 @@ const getAll = async (query: Record<string, any>) => {
       status: true,
       role: true,
       profile: true,
+      location: true,
+      bio: true,
       phoneNumber: true,
       createdAt: true,
       verification: {
@@ -178,6 +180,8 @@ const getById = async (id: string) => {
       id: true,
       name: true,
       email: true,
+      bio: true,
+      location: true,
       status: true,
       role: true,
       profile: true,

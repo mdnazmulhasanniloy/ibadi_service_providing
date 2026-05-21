@@ -53,12 +53,13 @@ model User {
   id          String   @id @default(auto()) @map("_id") @db.ObjectId
   name        String?
   email       String   @unique
-  bio String?
+  bio         String?
   password    String?
   status      status   @default(active)
   role        Role     @default(user)
   profile     String?
   phoneNumber String?
+  isVerified  Boolean  @default(false)
   customerId String?
   avgRating   Float   @default(0)
   totalReview Int     @default(0)
@@ -74,6 +75,7 @@ model User {
   workSchedule     workSchedule[] 
   deviceHistory    DeviceHistory[]  
   notifications    Notification[]  
+  verificationRequests    VerificationRequest[]  
   // reviews    Reviews[]  
   reviewsReceived Reviews[] @relation("UserReviews")
   reviewsGiven    Reviews[] @relation("AuthorReviews")
@@ -91,6 +93,24 @@ model User {
   favorites Favorites[] 
   address Address[] 
 
+}
+
+
+model VerificationRequest {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId    String   @db.ObjectId
+  reason    String?
+  status    VERIFICATION_STATUS  @default(pending)
+
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+
+  documents Images[]
+  notifications Notification[]
+
+  user User @relation(fields: [userId], references: [id])
 }
 
 model DeviceHistory {
@@ -156,6 +176,7 @@ model Notification {
   id String @id @default(auto()) @map("_id") @db.ObjectId
   receiverId String? @db.ObjectId
   bookingId String? @db.ObjectId 
+  verificationRequestId String? @db.ObjectId 
   message String
   description String?
   isRead Boolean @default(false)
@@ -165,6 +186,7 @@ model Notification {
 
    user    User?     @relation(fields: [receiverId], references: [id]) 
    booking    Bookings?     @relation(fields: [bookingId], references: [id]) 
+    verificationRequest    VerificationRequest?     @relation(fields: [verificationRequestId], references: [id])
 }
 
 model workSchedule {
@@ -456,10 +478,12 @@ model Images {
    id String @id @default(auto()) @map("_id") @db.ObjectId
    url String 
    messageId String? @db.ObjectId 
-   userId String? @db.ObjectId 
+   userId String? @db.ObjectId  
+   requestId String? @db.ObjectId  
 
    message Messages? @relation(fields: [messageId], references: [id])
    serviceProviderInfo serviceProviderInfo? @relation(fields: [userId], references: [userId])
+   verificationRequest VerificationRequest? @relation(fields: [requestId], references: [id])
 
 }
 
@@ -470,6 +494,12 @@ enum BookingDayStatus {
   completed
   canceled
 } 
+
+enum VERIFICATION_STATUS {
+  pending
+  verified
+  rejected
+}
 
 enum SlotStatus {
   available

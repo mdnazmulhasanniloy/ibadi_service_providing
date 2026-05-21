@@ -1,9 +1,10 @@
-import httpStatus from 'http-status';
+import httpStatus, { status } from 'http-status';
 import type { Request, Response } from 'express';
 import catchAsync from '@app/utils/catchAsync.js';
 import sendResponse from '@app/utils/sendResponse.js';
 import { bookingsService } from './bookings.service.js';
 import { notificationQueue } from '@app/redis/index.js';
+import { BookingStatus } from '../../../../generated/prisma/index.js';
 
 const createBookings = catchAsync(async (req: Request, res: Response) => {
   req.body['userId'] = req.user.userId;
@@ -81,6 +82,17 @@ const updateBookings = catchAsync(async (req: Request, res: Response) => {
     data: result,
   });
 });
+const completeBookings = catchAsync(async (req: Request, res: Response) => {
+  const result = await bookingsService.updateBookings(req.params.id as string, {
+    status: BookingStatus.complete,
+  });
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Bookings completed successfully',
+    data: result,
+  });
+});
 
 const acceptBookings = catchAsync(async (req: Request, res: Response) => {
   const result = await bookingsService.approvedRequest(req.params.id as string);
@@ -106,14 +118,14 @@ const acceptBookings = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
-const canceledBookings = catchAsync(async (req: Request, res: Response) => {
-  const result = await bookingsService.canceledRequest(req.params.id as string);
+const rejectBookings = catchAsync(async (req: Request, res: Response) => {
+  const result = await bookingsService.rejectBookings(req.params.id as string);
 
   if (result.userId) {
     const userNotification = {
       data: {
         receiverId: result.userId as string,
-        message: 'Booking Not Confirmed',
+        message: 'Booking Rejected',
         description:
           'Unfortunately, the provider was unable to accept your booking request at this time.',
         bookingId: result.id,
@@ -125,7 +137,33 @@ const canceledBookings = catchAsync(async (req: Request, res: Response) => {
   sendResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
-    message: 'Booking request  canceled successfully',
+    message: 'Booking request rejected successfully',
+    data: result,
+  });
+});
+
+const canceledBookings = catchAsync(async (req: Request, res: Response) => {
+  const result = await bookingsService.canceledBookings(
+    req.params.id as string,
+  );
+
+  if (result.userId) {
+    const userNotification = {
+      data: {
+        receiverId: result.userId as string,
+        message: 'Booking Rejected',
+        description:
+          'Unfortunately, the provider was unable to accept your booking request at this time.',
+        bookingId: result.id,
+      },
+    };
+    await notificationQueue.add('new_notification', userNotification);
+  }
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Booking request rejected successfully',
     data: result,
   });
 });
@@ -146,8 +184,10 @@ export const bookingsController = {
   getUserBookings,
   getServiceProviderBookings,
   updateBookings,
+  rejectBookings,
   getBookingsById,
   canceledBookings,
   acceptBookings,
+  completeBookings,
   // deleteBookings,
 };

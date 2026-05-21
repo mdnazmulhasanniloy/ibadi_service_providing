@@ -18,12 +18,17 @@ import { favoritesRoutes } from '@app/module/favorites/favorites.route.js';
 import { homepageRoutes } from '@app/module/homepage/homepage.route.js';
 import { callHistoryRoutes } from '@app/module/callHistory/callHistory.route.js';
 import { addressRoutes } from '@app/module/address/address.route.js';
+import { verificationRequestRoutes } from '@app/module/verificationRequest/verificationRequest.route.js';
 
 const router: Router = Router();
 
 const moduleRoutes = [
   {
-    path: "/address",
+    path: '/verification-request',
+    route: verificationRequestRoutes,
+  },
+  {
+    path: '/address',
     route: addressRoutes,
   },
   {

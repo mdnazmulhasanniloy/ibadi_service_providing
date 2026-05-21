@@ -9,9 +9,9 @@ const router: Router = Router();
 // 🔥 Favorites Routes
 // ======================================================
 router.post('/', auth(USER_ROLE.user), favoritesController.createFavorites);
-router.get('/', auth(USER_ROLE.user), favoritesController.getAllFavorites);
 router.get('/:id', auth(USER_ROLE.user), favoritesController.getFavoritesById);
 router.patch('/:id', auth(USER_ROLE.user), favoritesController.updateFavorites);
+router.get('/', auth(USER_ROLE.user), favoritesController.getAllFavorites);
 router.delete(
   '/:id',
   auth(USER_ROLE.user),

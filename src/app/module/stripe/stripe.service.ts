@@ -44,6 +44,11 @@ const setupInitiate = async (payload: {
   await StripeService.getStripe().paymentMethods.attach(paymentMethodId, {
     customer: customerId,
   });
+  await StripeService.getStripe().customers.update(customerId, {
+    invoice_settings: {
+      default_payment_method: paymentMethodId,
+    },
+  });
 
   return {
     success: true,
@@ -66,12 +71,9 @@ const getCardList = async (
       },
     });
     if (!user) throw new AppError(httpStatus.BAD_REQUEST, 'User not found');
-    if (!user.customerId)
-      throw new AppError(
-        httpStatus.BAD_REQUEST,
-        'stripe customer id not have.',
-      );
+    if (!user.customerId) return [];
 
+    console.log(user);
     const customer: any = await StripeService.getCustomer(user!.customerId);
 
     // const customer =

@@ -16,9 +16,19 @@ router.patch(
   bookingsController.acceptBookings,
 );
 router.patch(
+  '/reject/:id',
+  auth(USER_ROLE.user, USER_ROLE.service_provider),
+  bookingsController.rejectBookings,
+);
+router.patch(
   '/canceled/:id',
   auth(USER_ROLE.user, USER_ROLE.service_provider),
   bookingsController.canceledBookings,
+);
+router.patch(
+  '/complete/:id',
+  auth(USER_ROLE.user, USER_ROLE.service_provider),
+  bookingsController.completeBookings,
 );
 router.patch(
   '/:id',

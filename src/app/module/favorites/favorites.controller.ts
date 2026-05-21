@@ -23,7 +23,11 @@ export const favoritesController = {
   }),
 
   getAllFavorites: catchAsync(async (req, res) => {
-    const result = await favoritesService.getAllFavorites(req.query);
+    const query = {
+      ...req.query,
+      userId: req.user.userId,
+    };
+    const result = await favoritesService.getAllFavorites(query);
 
     sendResponse(res, {
       statusCode: httpStatus.OK,
