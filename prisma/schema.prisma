@@ -55,6 +55,7 @@ model User {
   email       String   @unique
   bio         String?
   password    String?
+  fcmToken    String?
   status      status   @default(active)
   role        Role     @default(user)
   profile     String?
@@ -486,6 +487,61 @@ model Images {
    verificationRequest VerificationRequest? @relation(fields: [requestId], references: [id])
 
 }
+
+model webAboutUs {
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+  image String
+  title String
+  content String
+  buttonText String
+  buttonLink String
+ 
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model services {
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+  name String
+  description String
+  image String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model ClientReview {
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+  image String
+  name String
+  review String
+  rating Float
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+
+
+
+// model CallHistory {
+//   id String @id @default(auto()) @map("_id") @db.ObjectId
+//   senderId String @db.ObjectId
+//   receiverId String @db.ObjectId 
+//   channelName String
+//   status CALL_STATUS @default(pending)
+//   type CALL_TYPE @default(audio_call)
+//   startTime DateTime?
+//   endTime DateTime?
+//   duration Int?  // in seconds
+
+//   createdAt DateTime @default(now())
+//   updatedAt DateTime @updatedAt
+
+
+//   sender User? @relation("sender", fields: [senderId], references: [id])
+//   receiver User @relation("receiver",fields: [receiverId], references: [id])
+// }
 
 // ─── Enums ───
 enum BookingDayStatus {

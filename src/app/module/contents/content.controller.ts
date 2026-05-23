@@ -11,12 +11,36 @@ const getContents = catchAsync(async (req, res) => {
     data: result,
   });
 });
+
+const getWebAboutUs = catchAsync(async (req, res) => {
+  const result = await contentsService.getWebAboutUs(req.query);
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: 'Web about us content fetched successfully',
+    data: result,
+  });
+});
+const updateWebAboutUs = catchAsync(async (req, res) => {
+  const result = await contentsService.updateWebAboutUs(
+    req.params.id as string,
+    req.body,
+  );
+  
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: 'Web about us content updated successfully',
+    data: result,
+  });
+});
+
 const updateContents = catchAsync(async (req, res) => {
   const result = await contentsService.updateContents(req.body);
   sendResponse(res, {
     statusCode: 200,
     success: true,
-    message: 'Contents fetched successfully',
+    message: 'Contents updated successfully',
     data: result,
   });
 });
@@ -24,4 +48,6 @@ const updateContents = catchAsync(async (req, res) => {
 export const contentController = {
   getContents,
   updateContents,
+  getWebAboutUs,
+  updateWebAboutUs,
 };

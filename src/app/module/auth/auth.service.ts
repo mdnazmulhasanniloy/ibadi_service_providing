@@ -7,7 +7,12 @@ import path from 'path';
 import fs from 'fs';
 import prisma from '@app/shared/prisma.js';
 import AppError from '@app/error/AppError.js';
-import { createToken, isPasswordMatched, verifyToken } from './user.utils.js';
+import {
+  createToken,
+  isPasswordMatched,
+  isValidFcmToken,
+  verifyToken,
+} from './user.utils.js';
 import config from '@app/config/index.js';
 import { generateOtp } from '@app/utils/otpGenerator.js';
 import { sendEmail } from '@app/utils/mailSender.js';
@@ -17,7 +22,7 @@ import type {
   ILogin,
   IResetPassword,
 } from './auth.interface.js';
-import { fileURLToPath } from 'url';
+import { fileURLToPath } from 'url'; 
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -60,6 +65,9 @@ const login = async (payload: ILogin, req: Request) => {
     throw new AppError(httpStatus.FORBIDDEN, 'User account is not verified');
   }
 
+  if (payload.fcmToken && !(await isValidFcmToken(payload?.fcmToken)))
+    throw new AppError(httpStatus.BAD_REQUEST, 'FCM Token is invalid');
+
   const jwtPayload: { userId: string; role: string } = {
     userId: user?.id?.toString() as string,
     role: user?.role,
@@ -100,6 +108,7 @@ const login = async (payload: ILogin, req: Request) => {
   await prisma.user.update({
     where: { id: user.id },
     data: {
+      fcmToken: payload?.fcmToken ?? null,
       deviceHistory: {
         create: {
           ip,

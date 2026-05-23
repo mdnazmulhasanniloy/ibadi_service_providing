@@ -111,6 +111,11 @@ const initializeSocket = async (server: HttpServer) => {
       ),
     );
 
+    // ── call ─────────────────────────────────────────
+      socket.on('call', (payload: any, callback: any) => {
+        
+      });
+
     // ── Disconnect ─────────────────────────────────────────
     socket.on('disconnect', async () => {
       const uid = await pubClient.hGet('socketId_to_userId', socket.id);

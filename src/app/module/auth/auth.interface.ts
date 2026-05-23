@@ -6,6 +6,7 @@ export type QueryObject = {
 export type ILogin = {
   email: string;
   password: string;
+  fcmToken: string;
 };
 export type IChangePassword = {
   oldPassword: string;
@@ -21,7 +22,6 @@ export interface IJwtPayload {
   userId: string;
   role: string;
 }
-
 
 export interface JwtPayload {
   userId: string;

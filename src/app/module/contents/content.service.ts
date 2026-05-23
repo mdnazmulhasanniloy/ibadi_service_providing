@@ -41,8 +41,34 @@ const getContents = async (query: Record<string, any>) => {
   return result ? { [key]: result[key] } : { [key]: null };
 };
 
+const getWebAboutUs = async (query: Record<string, any>) => {
+  const result = await prisma.webAboutUs.findMany({ where: {} });
+
+  return result;
+};
+
+const updateWebAboutUs = async (
+  id: string,
+  payload: Prisma.ContentsUpdateInput,
+) => {
+  const result = await prisma.webAboutUs.update({
+    where: { id },
+    data: payload,
+  });
+
+  if (!result)
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      'Failed to update web about us content',
+    );
+
+  return result;
+};
+
 export const contentsService = {
   createContents,
   getContents,
   updateContents,
+  getWebAboutUs,
+  updateWebAboutUs,
 };

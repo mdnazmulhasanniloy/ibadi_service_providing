@@ -17,7 +17,10 @@ const stripe = {
 const admin_credentials = {
   email: process.env.ADMIN_MAIL,
 };
-
+const agora = {
+  appId: process.env.AGORA_APP_ID,
+  appCertificate: process.env.AGORA_APP_CERTIFICATE,
+};
 export default {
   NODE_ENV: process.env.NODE_ENV,
   redis_port: process.env.REDIS_PORT,
@@ -38,4 +41,5 @@ export default {
   aws,
   stripe,
   admin_credentials,
+  agora,
 };

@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { contentController } from './content.controller.js';
+import { servicesController } from './services.controller.js';
 import auth from '@app/middleware/auth.js';
 import { USER_ROLE } from '../users/user.constants.js';
 import multer from 'multer';
@@ -8,21 +8,32 @@ import uploadSingle from '@app/middleware/uploadSingle.js';
 
 const router: Router = Router();
 const uploads = multer({ storage: multer.memoryStorage() });
-router.patch(
-  '/web-about-us/:id',
+
+router.post(
+  '/',
   auth(USER_ROLE.admin, USER_ROLE.sub_admin, USER_ROLE.supper_admin),
   uploads.single('image'),
   parseData(),
   uploadSingle('image'),
-  contentController.updateWebAboutUs,
+  servicesController.createServices,
 );
-router.get('/web-about-us', contentController.getWebAboutUs);
 
 router.patch(
-  '/',
+  '/:id',
   auth(USER_ROLE.admin, USER_ROLE.sub_admin, USER_ROLE.supper_admin),
-  contentController.updateContents,
+  uploads.single('image'),
+  parseData(),
+  uploadSingle('image'),
+  servicesController.updateServices,
 );
-router.get('/', contentController.getContents);
 
-export const contentsRoutes = router;
+router.delete(
+  '/:id',
+  auth(USER_ROLE.admin, USER_ROLE.sub_admin, USER_ROLE.supper_admin),
+  servicesController.deleteServices,
+);
+
+router.get('/:id', servicesController.getServicesById);
+router.get('/', servicesController.getAllServices);
+
+export const servicesRoutes = router;

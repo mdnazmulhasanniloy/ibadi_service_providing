@@ -19,10 +19,20 @@ import { homepageRoutes } from '@app/module/homepage/homepage.route.js';
 import { callHistoryRoutes } from '@app/module/callHistory/callHistory.route.js';
 import { addressRoutes } from '@app/module/address/address.route.js';
 import { verificationRequestRoutes } from '@app/module/verificationRequest/verificationRequest.route.js';
+import { servicesRoutes } from '@app/module/services/services.route.js';
+import { clientReviewRoutes } from '@app/module/clientReview/clientReview.route.js';
 
 const router: Router = Router();
 
 const moduleRoutes = [
+  {
+    path: '/client-review',
+    route: clientReviewRoutes,
+  },
+  {
+    path: '/services',
+    route: servicesRoutes,
+  },
   {
     path: '/verification-request',
     route: verificationRequestRoutes,
