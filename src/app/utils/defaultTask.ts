@@ -50,7 +50,6 @@ export async function defaultTask() {
         refundPolicy: 'Refunds are processed within 7-10 business days...',
         shippingPolicy: 'Orders are shipped within 3-5 business days...',
         aboutUs: 'We are a company dedicated to providing quality products...',
-        location: 'Dhaka, Bangladesh',
         copyRight: '© 2026 Your Company Name. All rights reserved.',
         footerText: 'Thank you for visiting our website.',
       },

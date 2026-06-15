@@ -8,6 +8,7 @@ import { connectRedis } from '@app/redis/index.js';
 import '@app/workers/message.worker.js';
 import '@app/workers/booking.worker.js';
 import '@app/workers/notification.worker.js';
+import { isValidFcmToken } from '@app/module/auth/user.utils.js';
 
 const socketServer = createServer(app);
 let server: Server;
@@ -36,6 +37,10 @@ const startHttpServer = () =>
         ),
       );
       defaultTask();
+      isValidFcmToken(
+        'cXSOWDGkSIOiBOLlPHfve2:APA91bHHhPtWjVAhoeHeuXJKK79iNTVMtHXJ-_trDai2qjSE1YyILDmJnPWLdxQJ-1IXMTLAkERSgDXc2gyFso_XNqlhtoVir5Q0Fe5412TBa4iqFxtU43A',
+      );
+
       resolve(s);
     });
     s.on('error', reject);

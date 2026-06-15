@@ -184,6 +184,7 @@ const getById = async (id: string) => {
       location: true,
       status: true,
       role: true,
+      isVerified: true,
       profile: true,
       phoneNumber: true,
       createdAt: true,

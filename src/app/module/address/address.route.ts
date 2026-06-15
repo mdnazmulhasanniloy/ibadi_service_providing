@@ -25,6 +25,10 @@ router.delete(
   addressController.deleteAddress,
 );
 router.get('/:id', addressController.getAddressById);
-router.get('/', addressController.getMyAddress);
+router.get(
+  '/',
+  auth(USER_ROLE.user, USER_ROLE.service_provider),
+  addressController.getMyAddress,
+);
 
 export const addressRoutes = router;

@@ -32,7 +32,9 @@ const getAllAddress = catchAsync(async (req: Request, res: Response) => {
   });
 });
 const getMyAddress = catchAsync(async (req: Request, res: Response) => {
-  const result = await addressService.getAllAddress(req.query);
+  const query = { ...req.query, userId: req?.user?.userId };
+  console.log(query);
+  const result = await addressService.getAllAddress(query);
   sendResponse(res, {
     statusCode: httpStatus.OK,
     success: true,

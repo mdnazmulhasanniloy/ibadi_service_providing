@@ -7,7 +7,7 @@
 Build new Production Image:
 
 ```sh
-docker build --no-cache   --build-arg DATABASE_URL="" -t nazmulhasn/ibadi_service_providing_app:latest .
+docker build --no-cache   --build-arg DATABASE_URL="" -t nazmulhasn/iumi_app:latest .
 ```
 
 ---
@@ -15,7 +15,7 @@ docker build --no-cache   --build-arg DATABASE_URL="" -t nazmulhasn/ibadi_servic
 ## 2. Push to Docker Hub
 
 ```sh
-docker push nazmulhasn/ibadi_service_providing_app:latest
+docker push nazmulhasn/iumi_app:latest
 ```
 
 ## 3. Other computer/server: pull new image

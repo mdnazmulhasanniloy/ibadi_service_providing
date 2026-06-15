@@ -17,7 +17,7 @@ router.get('/payment-method/add-page', stripeController.getStripeCardAddPage);
 // Save card after Stripe setup intent/session
 router.post(
   '/payment-method/save',
-  // auth(USER_ROLE.user),
+  auth(USER_ROLE.user),
   stripeController.saveStripeCard,
 );
 //save default payment method

@@ -22,7 +22,7 @@ import type {
   ILogin,
   IResetPassword,
 } from './auth.interface.js';
-import { fileURLToPath } from 'url'; 
+import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -65,7 +65,7 @@ const login = async (payload: ILogin, req: Request) => {
     throw new AppError(httpStatus.FORBIDDEN, 'User account is not verified');
   }
 
-  if (payload.fcmToken && !(await isValidFcmToken(payload?.fcmToken)))
+  if (!(await isValidFcmToken(payload?.fcmToken)))
     throw new AppError(httpStatus.BAD_REQUEST, 'FCM Token is invalid');
 
   const jwtPayload: { userId: string; role: string } = {
