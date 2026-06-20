@@ -1,4 +1,4 @@
-import type { Request, Response } from 'express'; 
+import type { Request, Response } from 'express';
 import { otpServices } from './otp.service.js';
 import httpStatus from 'http-status';
 import catchAsync from '@app/utils/catchAsync.js';
@@ -6,6 +6,8 @@ import sendResponse from '@app/utils/sendResponse.js';
 
 const verifyOtp = catchAsync(async (req: Request, res: Response) => {
   const token = req?.headers?.token;
+  console.log(req.headers);
+  console.log(req.headers.token);
 
   const result = await otpServices.verifyOtp(token as string, req.body.otp);
   sendResponse(res, {

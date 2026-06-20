@@ -118,6 +118,15 @@ const returnUrl = catchAsync(async (req: Request, res: Response) => {
     message: 'Stripe account updated successfully.',
   });
 });
+const getCustomerId = catchAsync(async (req: Request, res: Response) => {
+  const result = await stripeService.getCustomerId(req.user.userId as string);
+  sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    data: result,
+    message: 'Stripe account updated successfully.',
+  });
+});
 
 export const stripeController = {
   addStripeCard,
@@ -129,4 +138,5 @@ export const stripeController = {
   stripLinkAccount,
   refresh,
   returnUrl,
+  getCustomerId,
 };

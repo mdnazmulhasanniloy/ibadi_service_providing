@@ -18,11 +18,19 @@ import { generateOtp } from '@app/utils/otpGenerator.js';
 import { sendEmail } from '@app/utils/mailSender.js';
 import type {
   IChangePassword,
+  IGoogleLogin,
   IJwtPayload,
   ILogin,
   IResetPassword,
 } from './auth.interface.js';
-import { fileURLToPath } from 'url';
+import { fileURLToPath } from 'url'; 
+import firebaseAdmin from '@app/utils/firebase.js';
+import {
+  Login_With,
+  Role,
+  status,
+} from '../../../../generated/prisma/index.js';
+import { notificationQueue } from '@app/redis/index.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -46,6 +54,20 @@ const login = async (payload: ILogin, req: Request) => {
     throw new AppError(httpStatus.NOT_FOUND, 'User not found');
   }
 
+  const ip =
+    req.headers['x-forwarded-for']?.toString().split(',')[0] ||
+    req.socket.remoteAddress ||
+    '';
+
+
+ const parser = new UAParser(req.headers['user-agent']);
+ const result = parser.getResult();
+
+ const browser = result.browser.name || 'Unknown';
+ const os = result.os.name || 'Unknown';
+ const device = result.device.model || 'Desktop';
+
+
   if (user?.isDeleted) {
     throw new AppError(httpStatus.FORBIDDEN, 'This user is deleted');
   }
@@ -65,8 +87,14 @@ const login = async (payload: ILogin, req: Request) => {
     throw new AppError(httpStatus.FORBIDDEN, 'User account is not verified');
   }
 
-  if (!(await isValidFcmToken(payload?.fcmToken)))
-    throw new AppError(httpStatus.BAD_REQUEST, 'FCM Token is invalid');
+  const isIOS =
+    os.toLowerCase().includes('ios') ||
+    device.toLowerCase().includes('iphone') ||
+    device.toLowerCase().includes('ipad');
+
+  if (!isIOS)
+    if (!(await isValidFcmToken(payload?.fcmToken)))
+      throw new AppError(httpStatus.BAD_REQUEST, 'FCM Token is invalid');
 
   const jwtPayload: { userId: string; role: string } = {
     userId: user?.id?.toString() as string,
@@ -84,26 +112,6 @@ const login = async (payload: ILogin, req: Request) => {
     config.jwt_refresh_secret as string,
     config.jwt_refresh_expires_in as string,
   );
-
-  const ip =
-    req.headers['x-forwarded-for']?.toString().split(',')[0] ||
-    req.socket.remoteAddress ||
-    '';
-
-  // const userAgent = req.headers['user-agent'] || '';
-  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-  //@ts-ignore
-  // const parser = new UAParser(userAgent);
-  const parser = new UAParser(req.headers['user-agent']);
-  const result = parser.getResult();
-  //   const device = {
-  //     userId: user.id?.toString() as string,
-  //     ip,
-  //     browser: result.browser.name,
-  //     os: result.os.name,
-  //     device: result.device.model || 'Desktop',
-  //     lastLogin: new Date().toISOString(),
-  //   };
 
   await prisma.user.update({
     where: { id: user.id },
@@ -325,12 +333,133 @@ const refreshToken = async (token: string) => {
   };
 };
 
+const googleLogin = async (payload: IGoogleLogin, req:Request) => {
+  const decodedToken = await firebaseAdmin.auth().verifyIdToken(payload.token);
+
+  if (!decodedToken.email_verified) {
+    throw new AppError(httpStatus.BAD_REQUEST, 'Google email not verified');
+  }
+
+  const existingUser = await prisma.user.findUnique({
+    where: {
+      email: decodedToken.email!,
+    },
+    include: {
+      verification: true,
+      deviceHistory: true,
+    },
+  });
+
+  const ip =
+    req.headers['x-forwarded-for']?.toString().split(',')[0] ||
+    req.socket.remoteAddress ||
+    '';
+
+  const parser = new UAParser(req.headers['user-agent']);
+  const result = parser.getResult();
+
+  const browser = result.browser.name || 'Unknown';
+  const os = result.os.name || 'Unknown';
+  const device = result.device.model || 'Desktop';
+
+
+  const isIOS =
+    os.toLowerCase().includes('ios') ||
+    device.toLowerCase().includes('iphone') ||
+    device.toLowerCase().includes('ipad');
+
+  // LOGIN
+  if (existingUser) {
+    if (existingUser.isDeleted)
+      throw new AppError(httpStatus.FORBIDDEN, 'Account deleted');
+
+    if (existingUser.status !== status.active)
+      throw new AppError(httpStatus.FORBIDDEN, 'Account blocked');
+
+    if (!isIOS && payload.fcmToken) {
+      const userNotification = {
+        data: {
+          receiverId: existingUser.id as string,
+          message: 'Login Successful',
+          description: 'You have successfully logged in.',
+        },
+      };
+
+      await notificationQueue.add('new_notification', userNotification);
+    }
+
+    const jwtPayload = {
+      userId: existingUser.id,
+      role: existingUser.role,
+    };
+
+    return {
+      user: existingUser,
+      accessToken: createToken(
+        jwtPayload,
+        config.jwt_access_secret!,
+        config.jwt_access_expires_in!,
+      ),
+      refreshToken: createToken(
+        jwtPayload,
+        config.jwt_refresh_secret!,
+        config.jwt_refresh_expires_in!,
+      ),
+    };
+  }
+
+  // REGISTER
+
+  const user = await prisma.user.create({
+    data: {
+      name: decodedToken.name || 'Google User',
+      email: decodedToken.email!,
+      profile: decodedToken.picture || null,
+      phoneNumber: decodedToken.phone_number || null,
+      role: payload.role || Role.user,
+      loginWth: Login_With.google,
+
+      verification: {
+        create: {
+          status: true,
+          otp: 0,
+          expiredAt: null,
+        },
+      },
+    },
+    include: {
+      verification: true,
+      deviceHistory: true,
+    },
+  });
+
+  const jwtPayload = {
+    userId: user.id,
+    role: user.role,
+  };
+
+  return {
+    user,
+    accessToken: createToken(
+      jwtPayload,
+      config.jwt_access_secret!,
+      config.jwt_access_expires_in!,
+    ),
+    refreshToken: createToken(
+      jwtPayload,
+      config.jwt_refresh_secret!,
+      config.jwt_refresh_expires_in!,
+    ),
+  };
+};
+
 export const authServices = {
   login,
   changePassword,
   forgotPassword,
   resetPassword,
   refreshToken,
+  googleLogin,
   //   registerWithGoogle,
   //   registerWithFacebook,
 };

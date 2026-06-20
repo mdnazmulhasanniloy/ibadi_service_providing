@@ -37,9 +37,9 @@ const startHttpServer = () =>
         ),
       );
       defaultTask();
-      isValidFcmToken(
-        'cXSOWDGkSIOiBOLlPHfve2:APA91bHHhPtWjVAhoeHeuXJKK79iNTVMtHXJ-_trDai2qjSE1YyILDmJnPWLdxQJ-1IXMTLAkERSgDXc2gyFso_XNqlhtoVir5Q0Fe5412TBa4iqFxtU43A',
-      );
+      // isValidFcmToken(
+      //   'cXSOWDGkSIOiBOLlPHfve2:APA91bHHhPtWjVAhoeHeuXJKK79iNTVMtHXJ-_trDai2qjSE1YyILDmJnPWLdxQJ-1IXMTLAkERSgDXc2gyFso_XNqlhtoVir5Q0Fe5412TBa4iqFxtU43A',
+      // );
 
       resolve(s);
     });

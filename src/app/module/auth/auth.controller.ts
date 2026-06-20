@@ -29,50 +29,28 @@ const login = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
-// const registerWithFacebook = catchAsync(async (req: Request, res: Response) => {
-//   const result = await authServices.registerWithFacebook(req.body);
-//   const { refreshToken } = result;
-//   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-//   const cookieOptions: any = {
-//     secure: false,
-//     httpOnly: true,
-//     maxAge: 31536000000,
-//   };
+const googleLogin = catchAsync(async (req: Request, res: Response) => {
+  const result = await authServices.googleLogin(req.body, req);
+  const { refreshToken } = result;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const cookieOptions: any = {
+    secure: false,
+    httpOnly: true,
+    maxAge: 31536000000,
+  };
 
-//   if (config.NODE_ENV === 'production') {
-//     cookieOptions.sameSite = 'none';
-//   }
-//   res.cookie('refreshToken', refreshToken, cookieOptions);
+  if (config.NODE_ENV === 'production') {
+    cookieOptions.sameSite = 'none';
+  }
+  res.cookie('refreshToken', refreshToken, cookieOptions);
 
-//   sendResponse(res, {
-//     statusCode: httpStatus.OK,
-//     success: true,
-//     message: 'Logged in successfully',
-//     data: result,
-//   });
-// });
-// const registerWithGoogle = catchAsync(async (req: Request, res: Response) => {
-//   const result = await authServices.registerWithGoogle(req.body);
-//   const { refreshToken } = result;
-//   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-//   const cookieOptions: any = {
-//     secure: false,
-//     httpOnly: true,
-//     maxAge: 31536000000,
-//   };
-
-//   if (config.NODE_ENV === 'production') {
-//     cookieOptions.sameSite = 'none';
-//   }
-//   res.cookie('refreshToken', refreshToken, cookieOptions);
-
-//   sendResponse(res, {
-//     statusCode: httpStatus.OK,
-//     success: true,
-//     message: 'Logged in successfully',
-//     data: result,
-//   });
-// });
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Logged in successfully',
+    data: result,
+  });
+});
 
 // change password
 
@@ -113,7 +91,7 @@ const resetPassword = catchAsync(async (req: Request, res: Response) => {
 
 // refresh token
 const refreshToken = catchAsync(async (req: Request, res: Response) => {
-  const { refreshToken } = req.cookies; 
+  const { refreshToken } = req.cookies;
   const result = await authServices.refreshToken(
     refreshToken || req.body.refreshToken,
   );
@@ -131,6 +109,7 @@ export const authControllers = {
   forgotPassword,
   resetPassword,
   refreshToken,
+  googleLogin,
   //   registerWithGoogle,
   //   registerWithFacebook,
 };

@@ -26,6 +26,11 @@ router.post(
   auth(USER_ROLE.user),
   stripeController.setDefaultCard,
 );
+router.post(
+  '/get-customer',
+  auth(USER_ROLE.user, USER_ROLE.service_provider),
+  stripeController.getCustomerId,
+);
 
 // connect account routes
 router.patch(

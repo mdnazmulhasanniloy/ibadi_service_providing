@@ -55,6 +55,51 @@ const setupInitiate = async (payload: {
   };
 };
 
+const getCustomerId = async (userId: string): Promise<string> => {
+  const user = await prisma.user.findUnique({
+    where: {
+      id: userId,
+    },
+    select: {
+      id: true,
+      email: true,
+      name: true,
+      customerId: true,
+    },
+  });
+
+  if (!user) {
+    throw new Error('User not found');
+  }
+
+  // Return existing Stripe customer ID
+  if (user.customerId) {
+    return user.customerId;
+  }
+
+  // Create new Stripe customer
+  const customer = await StripeService.createCustomer(
+    user.email,
+    user.name ?? '',
+  );
+
+  if (!customer?.id) {
+    throw new Error('Failed to create Stripe customer');
+  }
+
+  // Save customer ID in DB
+  await prisma.user.update({
+    where: {
+      id: user.id,
+    },
+    data: {
+      customerId: customer.id,
+    },
+  });
+
+  return customer.id;
+};
+
 const getCardList = async (
   userId: String,
 ): Promise<TCardList[] | [] | null> => {
@@ -308,4 +353,5 @@ export const stripeService = {
   stripLinkAccount,
   refresh,
   returnUrl,
+  getCustomerId,
 };

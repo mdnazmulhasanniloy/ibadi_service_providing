@@ -6,6 +6,7 @@ import auth from '@app/middleware/auth.js';
 const router: Router = Router();
 
 router.post('/login', authControllers.login);
+router.post('/google-login', authControllers.googleLogin);
 
 router.post('/refresh-token', authControllers.refreshToken);
 

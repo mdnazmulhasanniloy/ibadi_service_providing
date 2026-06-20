@@ -1,3 +1,5 @@
+import type { Role } from '../../../../generated/prisma/index.js';
+
 export type QueryObject = {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   [key: string]: any;
@@ -7,6 +9,13 @@ export type ILogin = {
   email: string;
   password: string;
   fcmToken: string;
+};
+
+export type IGoogleLogin = {
+  email: string;
+  fcmToken: string;
+  token: string; 
+  role?: Role;
 };
 export type IChangePassword = {
   oldPassword: string;

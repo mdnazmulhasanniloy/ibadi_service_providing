@@ -57,6 +57,7 @@ model User {
   password    String?
   fcmToken    String?
   status      status   @default(active)
+  loginWth   Login_With  @default(credentials)
   role        Role     @default(user)
   profile     String?
   phoneNumber String?
@@ -556,7 +557,12 @@ enum VERIFICATION_STATUS {
   verified
   rejected
 }
-
+enum Login_With {
+  credentials
+  google
+  facebook
+  apple
+}
 enum SlotStatus {
   available
   booked

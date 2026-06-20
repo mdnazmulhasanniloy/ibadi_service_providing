@@ -1,6 +1,7 @@
 import { Worker } from 'bullmq';
 import { connection } from '@app/redis/index.js';
 import prisma from '@app/shared/prisma.js';
+import firebaseAdmin from '@app/utils/firebase.js';
 
 const notificationWorker = new Worker(
   'general_notification',
@@ -15,19 +16,28 @@ const notificationWorker = new Worker(
       // 👉 to do:
       // - WebSocket emit
       // - Push notification (FCM)
-      // if (payload.receiverId) {
-      //   const user = await prisma.user.findUnique({
-      //     where: {
-      //       id: payload.receiverId,
-      //     },
-      //     select: {
-      //       fcmToken: true,
-      //     },
-      //   });
-      //   if (user?.fcmToken) {
-      //     // - Push notification (FCM)
-      //   }
-      // }
+      if (payload.receiverId) {
+        const user = await prisma.user.findUnique({
+          where: {
+            id: payload.receiverId,
+          },
+          select: {
+            fcmToken: true,
+          },
+        });
+        if (user?.fcmToken) {
+          await firebaseAdmin.messaging().send({
+            token: payload.fcmToken,
+            notification: {
+              title: payload.message,
+              body: payload.description,
+            },
+            data: {
+              ...payload,
+            },
+          });
+        }
+      }
 
       // - Email send
     }
