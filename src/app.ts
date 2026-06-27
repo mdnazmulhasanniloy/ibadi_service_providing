@@ -32,6 +32,27 @@ app.use(
   }),
 );
 
+app.use(
+  helmet({
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: [
+          "'self'",
+          'https://fonts.googleapis.com',
+          'https://cdnjs.cloudflare.com',
+          'https://unpkg.com',
+        ],
+        styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
+        fontSrc: ["'self'", 'https://fonts.gstatic.com'],
+        imgSrc: ["'self'", 'data:', 'blob:'],
+        connectSrc: ["'self'"],
+        workerSrc: ["'self'", 'blob:'],
+      },
+    },
+  }),
+);
+
 app.use((req, res, next) => {
   res.setHeader(
     'Content-Security-Policy',

@@ -26,11 +26,7 @@ router.post(
   auth(USER_ROLE.user),
   stripeController.setDefaultCard,
 );
-router.post(
-  '/get-customer',
-  auth(USER_ROLE.user, USER_ROLE.service_provider),
-  stripeController.getCustomerId,
-);
+
 
 // connect account routes
 router.patch(
@@ -40,6 +36,12 @@ router.patch(
 );
 router.get('/return', stripeController.returnUrl);
 router.get('/refresh/:id', stripeController.refresh);
+
+router.get(
+  '/get-customer',
+  auth(USER_ROLE.user, USER_ROLE.service_provider),
+  stripeController.getCustomerId,
+);
 
 // Get all saved cards
 router.get(

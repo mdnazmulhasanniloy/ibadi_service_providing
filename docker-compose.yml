@@ -15,52 +15,52 @@ services:
       - '5005:5005'
     depends_on:
       - redis
-      - mongo
+      # - mongo
     expose:
       - '5000'
       - '5005'
-  nginx:
-    image: nginx:latest
-    container_name: iumi_app_nginx
-    restart: always
-    ports:
-      - '80:80'
-      - '443:443'
-    volumes:
-      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf
-      - ./certbot/conf:/etc/letsencrypt
-      - ./certbot/www:/var/www/certbot
-    depends_on:
-      - app
+  # nginx:
+  #   image: nginx:latest
+  #   container_name: iumi_app_nginx
+  #   restart: always
+  #   ports:
+  #     - '80:80'
+  #     - '443:443'
+  #   volumes:
+  #     - ./nginx/default.conf:/etc/nginx/conf.d/default.conf
+  #     - ./certbot/conf:/etc/letsencrypt
+  #     - ./certbot/www:/var/www/certbot
+  #   depends_on:
+  #     - app
 
-  redis:
-    image: redis:7.2-alpine
-    container_name: iumi_app_redis
-    restart: always
-    ports:
-      - '5050:6379'
-    volumes:
-      - redis-data:/data
-    command: ['redis-server', '--appendonly', 'yes']
+  # redis:
+  #   image: redis:7.2-alpine
+  #   container_name: iumi_app_redis
+  #   restart: always
+  #   ports:
+  #     - '5050:6379'
+  #   volumes:
+  #     - redis-data:/data
+  #   command: ['redis-server', '--appendonly', 'yes']
 
-  mongo:
-    image: mongo:7.0
-    container_name: iumi_app_mongo
-    restart: always
-    ports:
-      - 27017:27017
-    environment:
-      MONGO_INITDB_DATABASE: iumi_app
-    volumes:
-      - mongo-data:/data/db
-  certbot:
-    image: certbot/certbot
-    container_name: iumi_app_certbot
-    restart: always
-    volumes:
-      - ./certbot/conf:/etc/letsencrypt
-      - ./certbot/www:/var/www/certbot
+  # mongo:
+  #   image: mongo:7.0
+  #   container_name: iumi_app_mongo
+  #   restart: always
+  #   ports:
+  #     - 27017:27017
+  #   environment:
+  #     MONGO_INITDB_DATABASE: iumi_app
+  #   volumes:
+  #     - mongo-data:/data/db
+  # certbot:
+  #   image: certbot/certbot
+  #   container_name: iumi_app_certbot
+  #   restart: always
+  #   volumes:
+  #     - ./certbot/conf:/etc/letsencrypt
+  #     - ./certbot/www:/var/www/certbot
 
 volumes:
   redis-data:
-  mongo-data:
+  # mongo-data:
