@@ -39,13 +39,15 @@ model Faq {
   id String @id @default(auto()) @map("_id") @db.ObjectId
   question String 
   answer String
-  categoryId String @db.ObjectId
+  categoryId String? @db.ObjectId
+  userId String? @db.ObjectId  
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
 
-  category Categories @relation(fields: [categoryId], references: [id])
+  category Categories? @relation(fields: [categoryId], references: [id])
+  user User? @relation(fields: [userId], references: [id])
 }
 
 
@@ -77,6 +79,7 @@ model User {
   workSchedule     workSchedule[] 
   deviceHistory    DeviceHistory[]  
   notifications    Notification[]  
+  faq    Faq[]  
   verificationRequests    VerificationRequest[]  
   // reviews    Reviews[]  
   reviewsReceived Reviews[] @relation("UserReviews")

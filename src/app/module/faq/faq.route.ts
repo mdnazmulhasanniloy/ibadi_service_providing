@@ -7,17 +7,32 @@ const router: Router = Router();
 
 router.post(
   '/',
-  auth(USER_ROLE.admin, USER_ROLE.sub_admin, USER_ROLE.supper_admin),
+  auth(
+    USER_ROLE.admin,
+    USER_ROLE.sub_admin,
+    USER_ROLE.supper_admin,
+    USER_ROLE.service_provider,
+  ),
   faqController.createFaq,
 );
 router.patch(
   '/:id',
-  auth(USER_ROLE.admin, USER_ROLE.sub_admin, USER_ROLE.supper_admin),
+  auth(
+    USER_ROLE.admin,
+    USER_ROLE.sub_admin,
+    USER_ROLE.supper_admin,
+    USER_ROLE.service_provider,
+  ),
   faqController.updateFaq,
 );
 router.delete(
   '/:id',
-  auth(USER_ROLE.admin, USER_ROLE.sub_admin, USER_ROLE.supper_admin),
+  auth(
+    USER_ROLE.admin,
+    USER_ROLE.sub_admin,
+    USER_ROLE.supper_admin,
+    USER_ROLE.service_provider,
+  ),
   faqController.deleteFaq,
 );
 router.get('/:id', faqController.getFaqById);
