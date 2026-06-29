@@ -23,7 +23,7 @@ import type {
   ILogin,
   IResetPassword,
 } from './auth.interface.js';
-import { fileURLToPath } from 'url'; 
+import { fileURLToPath } from 'url';
 import firebaseAdmin from '@app/utils/firebase.js';
 import {
   Login_With,
@@ -59,14 +59,12 @@ const login = async (payload: ILogin, req: Request) => {
     req.socket.remoteAddress ||
     '';
 
+  const parser = new UAParser(req.headers['user-agent']);
+  const result = parser.getResult();
 
- const parser = new UAParser(req.headers['user-agent']);
- const result = parser.getResult();
-
- const browser = result.browser.name || 'Unknown';
- const os = result.os.name || 'Unknown';
- const device = result.device.model || 'Desktop';
-
+  const browser = result.browser.name || 'Unknown';
+  const os = result.os.name || 'Unknown';
+  const device = result.device.model || 'Desktop';
 
   if (user?.isDeleted) {
     throw new AppError(httpStatus.FORBIDDEN, 'This user is deleted');
@@ -92,7 +90,7 @@ const login = async (payload: ILogin, req: Request) => {
     device.toLowerCase().includes('iphone') ||
     device.toLowerCase().includes('ipad');
 
-  if (!isIOS)
+  if (!isIOS && payload.fcmToken)
     if (!(await isValidFcmToken(payload?.fcmToken)))
       throw new AppError(httpStatus.BAD_REQUEST, 'FCM Token is invalid');
 
@@ -333,7 +331,7 @@ const refreshToken = async (token: string) => {
   };
 };
 
-const googleLogin = async (payload: IGoogleLogin, req:Request) => {
+const googleLogin = async (payload: IGoogleLogin, req: Request) => {
   const decodedToken = await firebaseAdmin.auth().verifyIdToken(payload.token);
 
   if (!decodedToken.email_verified) {
@@ -361,7 +359,6 @@ const googleLogin = async (payload: IGoogleLogin, req:Request) => {
   const browser = result.browser.name || 'Unknown';
   const os = result.os.name || 'Unknown';
   const device = result.device.model || 'Desktop';
-
 
   const isIOS =
     os.toLowerCase().includes('ios') ||

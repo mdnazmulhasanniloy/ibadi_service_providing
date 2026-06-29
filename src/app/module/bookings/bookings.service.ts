@@ -69,6 +69,7 @@ const getAllBookings = async (query: any) => {
   const {
     searchTerm,
     upcoming,
+    date,
     past,
     isPaid,
     include: includeData,
@@ -149,6 +150,17 @@ const getAllBookings = async (query: any) => {
     andConditions.push({
       startDate: {
         gte: moment().toDate(),
+      },
+    });
+  }
+
+  if (date) {
+    andConditions.push({
+      startDate: {
+        gte: moment(date).toDate(),
+      },
+      endDate: {
+        lt: moment(date).toDate(),
       },
     });
   }
@@ -419,14 +431,11 @@ const canceledBookings = async (id: string) => {
   });
 
   if (!result) {
-    throw new AppError(
-      httpStatus.BAD_REQUEST,
-      'Booking request cancel failed',
-    );
+    throw new AppError(httpStatus.BAD_REQUEST, 'Booking request cancel failed');
   }
 
   return result;
-}
+};
 
 export const bookingsService = {
   createBookings,

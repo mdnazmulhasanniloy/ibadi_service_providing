@@ -44,6 +44,7 @@ const setupInitiate = async (payload: {
   await StripeService.getStripe().paymentMethods.attach(paymentMethodId, {
     customer: customerId,
   });
+
   await StripeService.getStripe().customers.update(customerId, {
     invoice_settings: {
       default_payment_method: paymentMethodId,

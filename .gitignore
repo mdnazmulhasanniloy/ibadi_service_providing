@@ -6,3 +6,4 @@ generated
 dist
 firebase.json
 
+deploy.sh
