@@ -219,7 +219,7 @@ model serviceProviderInfo {
   drivingLicense String?
   businessProfiles String?
   documents String?
-  perHourPrice Float
+  perHourPrice Float? @default(0)
   experienceOptionId String? @db.ObjectId 
   qualifiedCarer String?
  

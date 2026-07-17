@@ -86,6 +86,11 @@ const completeBookings = catchAsync(async (req: Request, res: Response) => {
   const result = await bookingsService.updateBookings(req.params.id as string, {
     status: BookingStatus.complete,
   });
+
+  const io = global?.socketio
+  if(io){
+    io.emit("bookingComplete::" + result?.userId?.toString(), result)
+  }
   sendResponse(res, {
     statusCode: httpStatus.OK,
     success: true,

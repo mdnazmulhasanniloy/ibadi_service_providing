@@ -7,7 +7,7 @@
 Build new Production Image:
 
 ```sh
-docker build --no-cache   --build-arg DATABASE_URL="" -t nazmulhasn/iumi_app:latest .
+docker build --no-cache   --build-arg DATABASE_URL="mongodb+srv://car-doctor:car-doctor@cluster0.pyj8wdj.mongodb.net/ibadi_serviceproviding?retryWrites=true&w=majority" -t nazmulhasn/iumi_app:latest .
 ```
 
 ---

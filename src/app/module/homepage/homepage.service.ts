@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import httpStatus from 'http-status';
 import prisma from '@app/shared/prisma.js';
 import type { Days, Prisma } from '../../../../generated/prisma/index.js';
@@ -609,6 +608,15 @@ const getAllHomepage = async (query: Record<string, any>) => {
               location: true,
               totalReview: true,
               avgRating: true,
+              _count: {
+                select: {
+                  providerBookings: {
+                    where: {
+                      isPaid: true,
+                    },
+                  },
+                },
+              },
             },
           },
 

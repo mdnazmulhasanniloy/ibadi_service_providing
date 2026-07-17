@@ -10,9 +10,10 @@ import { Role, type Prisma } from '../../../../generated/prisma/index.js';
 
 const create = async (payload: Prisma.UserCreateInput) => {
   try {
+    const { address, ...userData }: any = payload;
     const isExist = await prisma.user.findFirst({
       where: {
-        email: payload.email,
+        email: userData.email,
       },
       include: {
         verification: {
@@ -23,8 +24,12 @@ const create = async (payload: Prisma.UserCreateInput) => {
       },
     });
 
-    payload['password'] = await HashPassword(payload?.password as string);
-    if (payload.role === (Role.admin || Role.sub_admin || Role.sub_admin)) {
+    userData['password'] = await HashPassword(userData?.password as string);
+    if (
+      userData.role === Role.admin ||
+      userData.role === Role.sub_admin ||
+      userData.role === Role.supper_admin
+    ) {
       throw new AppError(
         httpStatus.BAD_REQUEST,
         "Incorrect role provided. The role must be either 'user' or 'service_provider'.",
@@ -42,7 +47,7 @@ const create = async (payload: Prisma.UserCreateInput) => {
       if (!isExist.verification?.status) {
         return await prisma.user.update({
           where: { id: isExist.id },
-          data: payload,
+          data: userData,
         });
       }
 
@@ -51,7 +56,17 @@ const create = async (payload: Prisma.UserCreateInput) => {
         'User already exists and is verified',
       );
     }
-    const result = await prisma.user.create({ data: payload });
+    const result = await prisma.user.create({
+      data: {
+        ...userData,
+        ...(address && {
+          address: {
+            create: address,
+          },
+        }),
+      },
+      include: { address: true },
+    });
 
     return result;
   } catch (error: any) {

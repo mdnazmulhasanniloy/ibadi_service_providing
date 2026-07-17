@@ -60,7 +60,7 @@ const createBookings = async (payload: any) => {
 
   return booking;
 };
-
+/*
 const getAllBookings = async (query: any) => {
   query.isDeleted = false;
 
@@ -151,7 +151,7 @@ const getAllBookings = async (query: any) => {
       startDate: {
         gte: moment().toDate(),
       },
-    });
+    });  
   }
 
   if (date) {
@@ -243,8 +243,286 @@ const getAllBookings = async (query: any) => {
       error?.message || 'Failed to fetch bookings',
     );
   }
-};
+}; */
+const getAllBookings = async (query: Record<string, any>) => {
+  query.isDeleted = false;
 
+  const { filters, pagination } = await pickQuery(query);
+
+  const {
+    searchTerm,
+    upcoming,
+    past,
+    date,
+    isPaid,
+    include: includeData,
+    ...filtersData
+  } = filters;
+
+  const ALLOWED_INCLUDES = [
+    'user',
+    'provider',
+    'bookingDays',
+    'payments',
+    'notifications',
+  ];
+
+  const ALLOWED_SORT_FIELDS = [
+    'createdAt',
+    'updatedAt',
+    'startDate',
+    'endDate',
+    'price',
+    'status',
+    'bookingType',
+  ];
+
+  const include: Prisma.BookingsInclude = {};
+
+  if (includeData) {
+    const fields = includeData.split(',');
+
+    for (const field of fields) {
+      const trimmed = field.trim();
+
+      if (!ALLOWED_INCLUDES.includes(trimmed)) continue;
+
+      switch (trimmed) {
+        case 'user':
+          include.user = {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              profile: true,
+              phoneNumber: true,
+            },
+          };
+          break;
+
+        case 'provider':
+          include.provider = {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              profile: true,
+              phoneNumber: true,
+              avgRating: true,
+              totalReview: true,
+
+              serviceProviderInfo: {
+                select: {
+                  bio: true,
+                  coverImage: true,
+                  perHourPrice: true,
+
+                  experience: {
+                    select: {
+                      id: true,
+                      value: true,
+                    },
+                  },
+
+                  specialistsIn: {
+                    select: {
+                      id: true,
+                      category: {
+                        select: {
+                          id: true,
+                          name: true,
+                          image: true,
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          };
+          break;
+
+        case 'bookingDays':
+          include.bookingDays = true;
+          break;
+
+        case 'payments':
+          include.payments = true;
+          break;
+
+        case 'notifications':
+          include.notifications = true;
+          break;
+      }
+    }
+  }
+
+  const andConditions: Prisma.BookingsWhereInput[] = [];
+
+  // Search
+  if (searchTerm) {
+    andConditions.push({
+      OR: [
+        {
+          user: {
+            is: {
+              name: {
+                contains: searchTerm,
+                mode: 'insensitive',
+              },
+            },
+          },
+        },
+        {
+          provider: {
+            is: {
+              name: {
+                contains: searchTerm,
+                mode: 'insensitive',
+              },
+            },
+          },
+        },
+      ],
+    });
+  }
+
+  const now = moment().toDate();
+
+  // Upcoming
+  if (upcoming == 'true') {
+    andConditions.push({
+      OR: [
+        {
+          startDate: {
+            gte: now,
+          },
+        },
+        // {
+        //   AND: [
+        //     {
+        //       startDate: {
+        //         lte: now,
+        //       },
+        //     },
+        //     {
+        //       OR: [
+        //         {
+        //           endDate: null,
+        //         },
+        //         {
+        //           endDate: {
+        //             gte: now,
+        //           },
+        //         },
+        //       ],
+        //     },
+        //   ],
+        // },
+      ],
+    });
+  }
+
+  // Past
+  if (past == 'true') {
+    andConditions.push({
+      endDate: {
+        lt: now,
+      },
+    });
+  }
+
+  // Date Filter
+  if (date) {
+    const start = moment(date).startOf('day').toDate();
+    const end = moment(date).endOf('day').toDate();
+
+    andConditions.push({
+      startDate: {
+        gte: start,
+        lte: end,
+      },
+    });
+  }
+
+  if (isPaid !== undefined) {
+    filtersData.isPaid = isPaid === 'true';
+  }
+
+  Object.entries(filtersData).forEach(([key, value]) => {
+    if (value !== undefined && value !== null && value !== '') {
+      andConditions.push({
+        [key]: {
+          equals: value,
+        },
+      });
+    }
+  });
+
+  const where: Prisma.BookingsWhereInput = {
+    isDeleted: false,
+    ...(andConditions.length && {
+      AND: andConditions,
+    }),
+  };
+
+  const { page, limit, skip, sort } =
+    paginationHelper.calculatePagination(pagination);
+
+  const take = Math.min(limit || 10, 100);
+
+  let orderBy: Prisma.BookingsOrderByWithRelationInput[] = [
+    {
+      createdAt: 'desc',
+    },
+  ];
+
+  if (sort) {
+    orderBy = sort
+      .split(',')
+      .map(field => field.trim())
+      .filter(field => {
+        const name = field.startsWith('-') ? field.slice(1) : field;
+        return ALLOWED_SORT_FIELDS.includes(name);
+      })
+      .map(field => ({
+        [field.startsWith('-') ? field.slice(1) : field]: field.startsWith('-')
+          ? 'desc'
+          : 'asc',
+      }));
+  }
+
+  try {
+    const [data, total] = await Promise.all([
+      prisma.bookings.findMany({
+        where,
+        include,
+        skip,
+        take,
+        orderBy,
+      }),
+
+      prisma.bookings.count({
+        where,
+      }),
+    ]);
+
+    return {
+      meta: {
+        page,
+        limit: take,
+        total,
+        totalPage: Math.ceil(total / take),
+      },
+      data,
+    };
+  } catch (error: any) {
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      error?.message || 'Failed to fetch bookings',
+    );
+  }
+};
 const getBookingsById = async (id: string, includeData: string) => {
   const include: { [key: string]: boolean | Object } = {};
   if (includeData) {
