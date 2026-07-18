@@ -13,6 +13,20 @@ const createWorkSchedule = catchAsync(async (req: Request, res: Response) => {
     data: result,
   });
 });
+const createSingleWorkingSchedule = catchAsync(
+  async (req: Request, res: Response) => {
+    const result = await workScheduleService.createSingleWorkingSchedule(
+      req.body,
+      req?.user?.userId,
+    );
+    sendResponse(res, {
+      statusCode: httpStatus.OK,
+      success: true,
+      message: 'WorkSchedule created successfully',
+      data: result,
+    });
+  },
+);
 
 const getAllWorkSchedule = catchAsync(async (req: Request, res: Response) => {
   const result = await workScheduleService.getAllWorkSchedule(req.query);
@@ -66,4 +80,5 @@ export const workScheduleController = {
   getWorkScheduleById,
   updateWorkSchedule,
   deleteWorkSchedule,
+  createSingleWorkingSchedule,
 };

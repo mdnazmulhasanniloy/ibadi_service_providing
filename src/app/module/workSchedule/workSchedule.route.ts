@@ -6,6 +6,11 @@ import { USER_ROLE } from '@app/module/users/user.constants.js';
 const router: Router = Router();
 
 router.post(
+  '/create-single',
+  auth(USER_ROLE.service_provider),
+  workScheduleController.createSingleWorkingSchedule,
+);
+router.post(
   '/',
   auth(USER_ROLE.service_provider),
   workScheduleController.createWorkSchedule,

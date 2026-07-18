@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import httpStatus from 'http-status';
 import prisma from '@app/shared/prisma.js';
-import type { Prisma } from '../../../../generated/prisma/index.js';
+import { Prisma } from '../../../../generated/prisma/index.js';
 import AppError from '@app/error/AppError.js';
 import pickQuery from '@app/utils/pickQuery.js';
 import { paginationHelper } from '@app/helpers/pagination.helpers.js';
@@ -21,6 +21,42 @@ const createWorkSchedule = async (
   return result;
 };
 
+const createSingleWorkingSchedule = async (
+  payload: Prisma.workScheduleCreateInput,
+  userId: string,
+) => {
+  const isExists = await prisma.workSchedule.findFirst({
+    where: {
+      userId,
+      day: payload.day,
+    },
+  });
+
+  if (!isExists) {
+    const result = await prisma.workSchedule.create({
+      data: payload,
+    });
+
+    if (!result) {
+      throw new AppError(httpStatus.BAD_REQUEST, 'Schedule add failed');
+    }
+
+    return result;
+  }
+
+  const result = await prisma.workSchedule.update({
+    where: {
+      id: isExists.id,
+    },
+    data: payload,
+  });
+
+  if (!result) {
+    throw new AppError(httpStatus.BAD_REQUEST, 'Schedule update failed');
+  }
+
+  return result;
+};
 /*
 get all function
 */
@@ -143,4 +179,5 @@ export const workScheduleService = {
   getWorkScheduleById,
   updateWorkSchedule,
   deleteWorkSchedule,
+  createSingleWorkingSchedule,
 };
