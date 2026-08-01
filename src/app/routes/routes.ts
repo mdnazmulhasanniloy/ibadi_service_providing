@@ -21,10 +21,19 @@ import { addressRoutes } from '@app/module/address/address.route.js';
 import { verificationRequestRoutes } from '@app/module/verificationRequest/verificationRequest.route.js';
 import { servicesRoutes } from '@app/module/services/services.route.js';
 import { clientReviewRoutes } from '@app/module/clientReview/clientReview.route.js';
+import { subscriptionRoutes } from '@app/module/subscription/subscription.route.js';
 
 const router: Router = Router();
 
 const moduleRoutes = [
+  {
+    path: "/packages",
+    route: packagesRoutes,
+  },
+  {
+    path: '/subscriptions',
+    route: subscriptionRoutes,
+  },
   {
     path: '/client-review',
     route: clientReviewRoutes,

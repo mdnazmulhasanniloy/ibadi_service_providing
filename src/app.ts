@@ -16,11 +16,17 @@ const app: Application = express();
 app.use(express.static('public'));
 app.set('view engine', 'ejs');
 app.set('views', 'public/ejs');
-app.use(express.json({ limit: '500mb' }));
+app.use(
+  express.json({
+    limit: '500mb',
+    verify: (req, _res, buffer) => {
+      (req as Request).rawBody = buffer;
+    },
+  }),
+);
 app.use(express.urlencoded({ limit: '500mb', extended: true }));
 
 //parsers
-app.use(express.json());
 app.use(cookieParser());
 app.use(compression());
 app.use(helmet());

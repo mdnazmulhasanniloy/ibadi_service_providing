@@ -13,6 +13,7 @@ import _ from 'lodash';
 import { resolveStripeCustomer } from '../bookings/bookings.utils.js';
 import { toFixed2 } from '../bookings/bookings.constants.js';
 import { months } from './payments.constants.js';
+import type { RevenueCatEvent } from './payments.interface.js';
 
 interface MonthlyData {
   month: string;
@@ -358,6 +359,170 @@ const confirmPayment = async (payload: {
   }
 };
 
+const revenueCatWebHook = async (payload: { event: RevenueCatEvent }) => {
+  const event = payload.event;
+
+  console.log('🚀 RevenueCat Event:', event);
+
+  const {
+    type,
+    app_user_id,
+    product_id,
+    transaction_id,
+    expiration_at_ms,
+    purchased_at_ms,
+    entitlement_ids,
+    store,
+  } = event;
+
+  const isValidUserId = /^[0-9a-fA-F]{24}$/.test(app_user_id);
+
+  if (!isValidUserId) {
+    console.warn(
+      `Invalid app_user_id received: ${app_user_id}, skipping event.`,
+    );
+    return;
+  }
+
+  const user = await prisma.user.findUnique({
+    where: {
+      id: app_user_id,
+    },
+  });
+
+  if (!user) {
+    console.warn(`User not found: ${app_user_id}`);
+    return;
+  }
+
+  switch (type) {
+    case 'INITIAL_PURCHASE':
+    case 'RENEWAL': {
+      // Prevent duplicate webhook processing
+      const existing = await prisma.subscription.findFirst({
+        where: {
+          trnId: transaction_id,
+        },
+      });
+
+      if (existing) {
+        console.log(`Transaction ${transaction_id} already processed.`);
+        return;
+      }
+
+      const pkg = await prisma.packages.findFirst({
+        where: {
+          productId: product_id,
+        },
+      });
+
+      if (!pkg) {
+        console.error(`Package not found for productId: ${product_id}`);
+        return;
+      }
+
+      await prisma.subscription.upsert({
+        where: {
+          userId: user.id,
+        },
+        create: {
+          userId: user.id,
+          packageId: pkg.id,
+          trnId: transaction_id,
+          productId: product_id,
+          entitlementId: entitlement_ids?.[0] ?? null,
+          purchasedAt: new Date(purchased_at_ms),
+          expiresAt: expiration_at_ms ? new Date(expiration_at_ms) : null,
+          store,
+
+          isPaid: true,
+          isActive: true,
+          isExpired: false,
+        },
+        update: {
+          packageId: pkg.id,
+          trnId: transaction_id,
+          productId: product_id,
+          entitlementId: entitlement_ids?.[0] ?? null,
+          purchasedAt: new Date(purchased_at_ms),
+          expiresAt: expiration_at_ms ? new Date(expiration_at_ms) : null,
+          store,
+
+          isPaid: true,
+          isActive: true,
+          isExpired: false,
+        },
+      });
+
+      console.log(`Subscription updated successfully for user ${user.id}`);
+
+      break;
+    }
+
+    case 'EXPIRATION': {
+      await prisma.subscription.update({
+        where: {
+          userId: user.id,
+        },
+        data: {
+          isActive: false,
+          isExpired: true,
+        },
+      });
+
+      console.log(`Subscription expired for user ${user.id}`);
+
+      break;
+    }
+
+    case 'CANCELLATION': {
+      console.log(
+        `Subscription cancelled by user (auto renew off): ${user.id}`,
+      );
+
+      break;
+    }
+
+    case 'BILLING_ISSUE': {
+      console.warn(
+        `Billing issue detected for user ${user.id}. Waiting for grace period.`,
+      );
+
+      // TODO:
+      // Send Push Notification
+      // Send Email
+
+      break;
+    }
+
+    case 'PRODUCT_CHANGE': {
+      console.log(
+        `Product change requested: ${product_id} -> ${event.new_product_id}`,
+      );
+
+      break;
+    }
+
+    case 'UNCANCELLATION': {
+      console.log(`Subscription uncancelled for user ${user.id}`);
+
+      break;
+    }
+
+    case 'TRANSFER': {
+      console.log(`Subscription transferred for app_user_id ${user.id}`);
+
+      // TODO:
+      // Handle subscription transfer if needed
+
+      break;
+    }
+
+    default:
+      console.warn(`Unhandled RevenueCat Event: ${type}`);
+  }
+};
+
 const getAllPayments = async (query: Record<string, any>) => {
   const options = paginationHelper.calculatePagination(query);
   const { page, limit, skip } = options;
@@ -562,4 +727,5 @@ export const paymentsService = {
   getAllPayments,
   getDashboardCards,
   adminDashboardChart,
+  revenueCatWebHook,
 };

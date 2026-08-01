@@ -21,7 +21,17 @@ const agora = {
   appId: process.env.AGORA_APP_ID,
   appCertificate: process.env.AGORA_APP_CERTIFICATE,
 };
+const revenueCat = {
+  secretApiKey: process.env.REVENUECAT_SECRET_API_KEY,
+  entitlementId: process.env.REVENUECAT_ENTITLEMENT_ID,
+  webhookAuthorization: process.env.REVENUECAT_WEBHOOK_AUTHORIZATION,
+  webhookSigningSecret: process.env.REVENUECAT_WEBHOOK_SIGNING_SECRET,
+  webhookToleranceSeconds: Number(
+    process.env.REVENUECAT_WEBHOOK_TOLERANCE_SECONDS || 300,
+  ),
+};
 export default {
+  revenuecat_webhook_secret: process.env.REVENUECAT_WEBHOOK_SECRET,
   NODE_ENV: process.env.NODE_ENV,
   redis_port: process.env.REDIS_PORT,
   redis_host: process.env.REDIS_HOST,
@@ -42,4 +52,5 @@ export default {
   stripe,
   admin_credentials,
   agora,
+  revenueCat,
 };

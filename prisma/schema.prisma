@@ -97,6 +97,7 @@ model User {
   providerPayments Payments[] @relation("ProviderPayments")
   favorites Favorites[] 
   address Address[] 
+  subscription Subscription?
 
 }
 
@@ -526,28 +527,40 @@ model ClientReview {
 }
 
 
+model Packages {
+  id String @id @map("_id") @default(auto()) @db.ObjectId
+  name String 
+  productId String
+  description String 
+  price Int 
+  isRecommended Boolean
+  createdAt DateTime @default(now())
+  updateAt DateTime @updatedAt
 
+  subscription Subscription[]
+}
 
+model Subscription {
+  id              String   @id @default(auto()) @map("_id") @db.ObjectId
+  packageId       String? @db.ObjectId
+  userId          String   @unique @db.ObjectId
+  trnId           String?
+  expiresAt       DateTime?
+  isPaid          Boolean  @default(false)
+  isActive        Boolean  @default(false)
+  isExpired       Boolean  @default(false)
+  entitlementId   String?
+  productId       String?
+  store           String?
+  purchasedAt     DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  package Packages? @relation(fields: [packageId], references: [id], onDelete: Cascade)
+}
 
-// model CallHistory {
-//   id String @id @default(auto()) @map("_id") @db.ObjectId
-//   senderId String @db.ObjectId
-//   receiverId String @db.ObjectId 
-//   channelName String
-//   status CALL_STATUS @default(pending)
-//   type CALL_TYPE @default(audio_call)
-//   startTime DateTime?
-//   endTime DateTime?
-//   duration Int?  // in seconds
-
-//   createdAt DateTime @default(now())
-//   updatedAt DateTime @updatedAt
-
-
-//   sender User? @relation("sender", fields: [senderId], references: [id])
-//   receiver User @relation("receiver",fields: [receiverId], references: [id])
-// }
+ 
 
 // ─── Enums ───
 enum BookingDayStatus {

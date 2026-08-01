@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { raw, Router } from 'express';
 import { paymentsController } from './payments.controller.js';
 import auth from '@app/middleware/auth.js';
 import { USER_ROLE } from '../users/user.constants.js';
@@ -9,6 +9,12 @@ router.post(
   '/payout',
   auth(USER_ROLE.user, USER_ROLE.service_provider),
   paymentsController.createPayment,
+);
+
+router.post(
+  '/revenuecat/webhooks',
+  raw({ type: 'application/json' }),
+  paymentsController.revenueCatWebHook,
 );
 router.get('/confirm-payment', paymentsController.confirmPayment);
 router.get(

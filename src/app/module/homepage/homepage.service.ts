@@ -419,7 +419,9 @@ const getAllHomepage = async (query: Record<string, any>) => {
 
     if (startTimeType === 'exact' && startTime) {
       const { hour: sh, minute: sm } = parseHHmm(startTime);
+
       const start = buildDateTime(dateStr, Number(sh), sm);
+      
       let end: Date;
 
       if (endTime) {
@@ -427,19 +429,18 @@ const getAllHomepage = async (query: Record<string, any>) => {
         end = buildDateTime(dateStr, Number(eh), em);
       } else if (durationHours) {
         end = new Date(start.getTime() + durationHours * 60 * 60 * 1000);
-      } else {
-        // no end info – just use start (will skip time-slot filtering)
+      } else { 
         return null;
       }
       return { dayName, start, end };
     }
 
-    return null; // no start-time info provided
+    return null;  
   };
 
   if (bookingType === 'one_time' && date) {
     const w = buildWindowsForDate(date);
-
+    console.log(w);
     if (w) requestedWindows.push(w);
   } else if (bookingType === 'weekly' && days) {
     const selectedDays = (days as string)
