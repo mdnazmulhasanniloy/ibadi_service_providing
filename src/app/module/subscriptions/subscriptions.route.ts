@@ -1,0 +1,46 @@
+import { Router } from 'express';
+import { subscriptionsController } from './subscriptions.controller.js';
+import auth from '@app/middleware/auth.js';
+import { USER_ROLE } from '../users/user.constants.js';
+
+const router: Router = Router();
+
+router.post(
+  '/free-trial',
+  auth(USER_ROLE.service_provider),
+  subscriptionsController.getFreeTrial,
+);
+// router.patch('/:id', subscriptionsController.updateSubscriptions);
+// router.delete('/:id', subscriptionsController.deleteSubscriptions);
+router.get(
+  '/my-subscriptions',
+  auth(USER_ROLE.service_provider),
+  subscriptionsController.getMySubscriptions,
+);
+router.get(
+  '/active',
+  auth(USER_ROLE.service_provider),
+  subscriptionsController.getActiveSubscriptions,
+);
+router.get(
+  '/:id',
+  auth(
+    USER_ROLE.service_provider,
+    USER_ROLE.admin,
+    USER_ROLE.sub_admin,
+    USER_ROLE.supper_admin,
+  ),
+  subscriptionsController.getSubscriptionsById,
+);
+router.get(
+  '/',
+  auth(
+    USER_ROLE.service_provider,
+    USER_ROLE.admin,
+    USER_ROLE.sub_admin,
+    USER_ROLE.supper_admin,
+  ),
+  subscriptionsController.getAllSubscriptions,
+);
+
+export const subscriptionsRoutes = router;

@@ -1,66 +1,59 @@
-
 import httpStatus from 'http-status';
 import type { Request, Response } from 'express';
-import catchAsync from '@app/utils/catchAsync.js'; 
-import { packagesService } from './packages.service'; 
+import catchAsync from '@app/utils/catchAsync.js';
+import { packagesService } from './packages.service.js';
 import sendResponse from '@app/utils/sendResponse.js';
 
-
-
 const createPackages = catchAsync(async (req: Request, res: Response) => {
- const result = await packagesService.createPackages(req.body);
+  const result = await packagesService.createPackages(req.body);
   sendResponse(res, {
-   statusCode: httpStatus.OK,
+    statusCode: httpStatus.OK,
     success: true,
     message: 'Packages created successfully',
     data: result,
   });
-
 });
 
 const getAllPackages = catchAsync(async (req: Request, res: Response) => {
-
- const result = await packagesService.getAllPackages(req.query);
+  const result = await packagesService.getAllPackages(req.query);
   sendResponse(res, {
-   statusCode: httpStatus.OK,
+    statusCode: httpStatus.OK,
     success: true,
     message: 'All packages fetched successfully',
     data: result,
   });
-
 });
 
 const getPackagesById = catchAsync(async (req: Request, res: Response) => {
- const result = await packagesService.getPackagesById(req.params.id);
+  const result = await packagesService.getPackagesById(req.params.id as string);
   sendResponse(res, {
-   statusCode: httpStatus.OK,
+    statusCode: httpStatus.OK,
     success: true,
     message: 'Packages fetched successfully',
     data: result,
   });
-
 });
 const updatePackages = catchAsync(async (req: Request, res: Response) => {
-const result = await packagesService.updatePackages(req.params.id, req.body);
+  const result = await packagesService.updatePackages(
+    req.params.id as string,
+    req.body,
+  );
   sendResponse(res, {
-   statusCode: httpStatus.OK,
+    statusCode: httpStatus.OK,
     success: true,
     message: 'Packages updated successfully',
     data: result,
   });
-
 });
 
-
 const deletePackages = catchAsync(async (req: Request, res: Response) => {
- const result = await packagesService.deletePackages(req.params.id);
+  const result = await packagesService.deletePackages(req.params.id as string);
   sendResponse(res, {
-   statusCode: httpStatus.OK,
+    statusCode: httpStatus.OK,
     success: true,
     message: 'Packages deleted successfully',
     data: result,
   });
-
 });
 
 export const packagesController = {

@@ -223,6 +223,7 @@ model serviceProviderInfo {
   perHourPrice Float? @default(0)
   experienceOptionId String? @db.ObjectId 
   qualifiedCarer String?
+  hasUsedFreeTrial Boolean @default(false)
  
   
   createdAt   DateTime @default(now())
@@ -530,6 +531,7 @@ model ClientReview {
 model Packages {
   id String @id @map("_id") @default(auto()) @db.ObjectId
   name String 
+  duration Int
   productId String
   description String 
   price Int 
