@@ -1,7 +1,7 @@
 import config from '@app/config/index.js';
-import * as agoraToken from 'agora-access-token';
-const RtcTokenBuilder = agoraToken.RtcTokenBuilder;
-const RtcRole = agoraToken.RtcRole;
+import agoraToken from 'agora-access-token';
+
+const { RtcTokenBuilder, RtcRole } = agoraToken;
 
 export function generateAgoraToken(channelName: string, uid: number) {
   const appId = config.agora.appId;

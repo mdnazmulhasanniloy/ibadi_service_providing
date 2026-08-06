@@ -24,11 +24,6 @@ const agora = {
 const revenueCat = {
   secretApiKey: process.env.REVENUECAT_SECRET_API_KEY,
   entitlementId: process.env.REVENUECAT_ENTITLEMENT_ID,
-  webhookAuthorization: process.env.REVENUECAT_WEBHOOK_AUTHORIZATION,
-  webhookSigningSecret: process.env.REVENUECAT_WEBHOOK_SIGNING_SECRET,
-  webhookToleranceSeconds: Number(
-    process.env.REVENUECAT_WEBHOOK_TOLERANCE_SECONDS || 300,
-  ),
 };
 export default {
   revenuecat_webhook_secret: process.env.REVENUECAT_WEBHOOK_SECRET,

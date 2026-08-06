@@ -10,6 +10,7 @@ import helmet from 'helmet';
 import router from '@app/routes/routes.js';
 import notFound from '@app/middleware/notfound.js';
 import globalErrorHandler from '@app/middleware/globalErrorhandler.js';
+import generateCryptoString from '@app/utils/generateCryptoString.js';
 
 const app: Application = express();
 

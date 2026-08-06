@@ -73,14 +73,20 @@ const getFreeTrial = async (userId: string) => {
 
   const purchasedAt = moment.utc().toDate();
   const expiresAt = moment.utc().add(Number(pkg.duration), 'days').toDate();
+  const graceEndsAt = moment(expiresAt).add(3, 'days').toDate();
 
   const result = await prisma.$transaction(async tx => {
     const subscription = await tx.subscription.create({
       data: {
         userId,
         packageId: pkg.id,
+        productId: pkg.productId,
+        entitlementId: 'free_trial',
+        environment: 'MANUAL',
+        willRenew: false,
         purchasedAt,
         expiresAt,
+        graceEndsAt,
         isPaid: true,
         isActive: true,
       },
@@ -183,6 +189,7 @@ const getSubscriptionsById = async (id: string) => {
     throw new AppError(httpStatus.BAD_REQUEST, error?.message);
   }
 };
+
 const getActiveSubscriptions = async (id: string) => {
   try {
     const result = await prisma.subscription.findFirst({
@@ -203,6 +210,119 @@ const getActiveSubscriptions = async (id: string) => {
   } catch (error: any) {
     throw new AppError(httpStatus.BAD_REQUEST, error?.message);
   }
+};
+
+const getCurrentSubscription = async (userId: string) => {
+  const now = new Date();
+
+  await prisma.subscription.updateMany({
+    where: {
+      userId,
+      isActive: true,
+      OR: [
+        { graceEndsAt: { lte: now } },
+        { graceEndsAt: null, expiresAt: { lte: now } },
+      ],
+    },
+    data: { isActive: false, isExpired: true },
+  });
+
+  const subscription = await prisma.subscription.findFirst({
+    where: {
+      userId,
+      isActive: true,
+      isPaid: true,
+      isExpired: false,
+      OR: [
+        { expiresAt: null },
+        { expiresAt: { gt: now } },
+        { graceEndsAt: { gt: now } },
+      ],
+    },
+    orderBy: [{ expiresAt: 'desc' }, { createdAt: 'desc' }],
+    include: {
+      package: {
+        select: {
+          id: true,
+          name: true,
+          duration: true,
+          productId: true,
+          description: true,
+          price: true,
+          isRecommended: true,
+        },
+      },
+    },
+  });
+
+  if (!subscription) {
+    return {
+      hasActiveSubscription: false,
+      subscription: null,
+    };
+  }
+
+  const fallbackPackage =
+    !subscription.package && subscription.productId
+      ? await prisma.packages.findFirst({
+          where: { productId: subscription.productId },
+          select: {
+            id: true,
+            name: true,
+            duration: true,
+            productId: true,
+            description: true,
+            price: true,
+            isRecommended: true,
+          },
+        })
+      : null;
+  const millisecondsRemaining = subscription.expiresAt
+    ? Math.max(0, subscription.expiresAt.getTime() - now.getTime())
+    : null;
+  const isInGracePeriod = Boolean(
+    subscription.expiresAt &&
+    subscription.expiresAt <= now &&
+    subscription.graceEndsAt &&
+    subscription.graceEndsAt > now,
+  );
+  const graceMillisecondsRemaining = isInGracePeriod
+    ? Math.max(0, (subscription.graceEndsAt as Date).getTime() - now.getTime())
+    : null;
+
+  return {
+    hasActiveSubscription: true,
+    subscription: {
+      id: subscription.id,
+      entitlementId: subscription.entitlementId,
+      productId:
+        subscription.productId ||
+        subscription.package?.productId ||
+        fallbackPackage?.productId ||
+        null,
+      store: subscription.store,
+      environment: subscription.environment,
+      willRenew: subscription.willRenew,
+      pendingProductId: subscription.pendingProductId,
+      cancelReason: subscription.cancelReason,
+      purchasedAt: subscription.purchasedAt,
+      expiresAt: subscription.expiresAt,
+      graceEndsAt: subscription.graceEndsAt,
+      isInGracePeriod,
+      graceDaysRemaining:
+        graceMillisecondsRemaining === null
+          ? null
+          : Math.ceil(graceMillisecondsRemaining / (1000 * 60 * 60 * 24)),
+      isPaid: subscription.isPaid,
+      isActive: true,
+      isExpired: false,
+      daysRemaining:
+        millisecondsRemaining === null
+          ? null
+          : Math.ceil(millisecondsRemaining / (1000 * 60 * 60 * 24)),
+      package: subscription.package || fallbackPackage,
+    },
+  };
 };
 
 // update
@@ -242,6 +362,97 @@ const deleteSubscriptions = async (id: string) => {
   return result;
 };
 
+const manualSubscriptionUpdate = async (payload: any, userId: string) => {
+  const subscriber = payload?.subscriber;
+  if (!subscriber) {
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      'Invalid payload: subscriber not found',
+    );
+  }
+
+  const entitlementEntries = Object.entries(subscriber.entitlements || {});
+  if (entitlementEntries.length === 0) {
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      'No entitlement found in payload',
+    );
+  }
+  const [entitlementId, entitlementData] = entitlementEntries[0] as [
+    string,
+    any,
+  ];
+
+  const productIdentifier = entitlementData.product_identifier;
+  const subscriptionData = subscriber.subscriptions?.[productIdentifier];
+
+  if (!productIdentifier) {
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      'product_identifier missing in entitlement',
+    );
+  }
+
+  const pkg = await prisma.packages.findFirst({
+    where: { productId: productIdentifier },
+  });
+  if (!pkg) {
+    throw new AppError(
+      httpStatus.NOT_FOUND,
+      `Package not found for productId: ${productIdentifier}`,
+    );
+  }
+
+  const subscriptionPayloadData = {
+    packageId: pkg.id,
+    trnId: subscriptionData?.store_transaction_id ?? null,
+    expiresAt: entitlementData.expires_date
+      ? new Date(entitlementData.expires_date)
+      : null,
+    graceEndsAt: entitlementData.grace_period_expires_date
+      ? new Date(entitlementData.grace_period_expires_date)
+      : null,
+    isPaid: true,
+    isActive: true,
+    isExpired: false,
+    entitlementId,
+    productId: pkg.productId,
+    store: subscriptionData?.store ?? null,
+    environment: subscriptionData?.is_sandbox ? 'sandbox' : 'production',
+    originalTrnId: subscriptionData?.store_transaction_id ?? null,
+    willRenew: subscriptionData
+      ? !subscriptionData.unsubscribe_detected_at
+      : null,
+    purchasedAt: entitlementData.purchase_date
+      ? new Date(entitlementData.purchase_date)
+      : null,
+  };
+
+  // এই user-এর আগের সব active subscription deactivate করে দেই (নতুনটা বসানোর আগে)
+  const existingSubscription = await prisma.subscription.findFirst({
+    where: {
+      isActive: true,
+      userId,
+      isPaid: true,
+      isExpired: false,
+    },
+  });
+
+  const result = existingSubscription
+    ? await prisma.subscription.update({
+        where: { id: existingSubscription.id },
+        data: subscriptionPayloadData,
+      })
+    : await prisma.subscription.create({
+        data: {
+          userId,
+          ...subscriptionPayloadData,
+        },
+      });
+
+  return result;
+};
+
 export const subscriptionsService = {
   createSubscriptions,
   getAllSubscriptions,
@@ -249,5 +460,7 @@ export const subscriptionsService = {
   updateSubscriptions,
   deleteSubscriptions,
   getActiveSubscriptions,
+  getCurrentSubscription,
   getFreeTrial,
+  manualSubscriptionUpdate,
 };

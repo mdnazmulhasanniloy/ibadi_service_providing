@@ -1,55 +1,41 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
+import crypto from 'crypto';
 import httpStatus from 'http-status';
 import prisma from '@app/shared/prisma.js';
 import AppError from '@app/error/AppError.js';
 import { generateAgoraToken } from './agora.utils.js';
 import config from '@app/config/index.js';
-import moment from 'moment';
+ 
 
 //Create Function
-const generateToken = async (query: Record<string, any>) => {
-  const { channelName, uid } = query;
-  if (!channelName || !uid)
-    throw new AppError(httpStatus.BAD_REQUEST, 'Missing params');
-  const token = generateAgoraToken(channelName, Number(uid));
-
-  return { token, appId: config.agora.appId, channelName };
+const numericAgoraUid = (userId: string) => {
+  const digest = crypto.createHash('sha256').update(userId).digest();
+  return (digest.readUInt32BE(0) & 0x7fffffff) || 1;
 };
 
-const StartCall = async (payload: any) => {
-  const { senderId, receiverId, type, channelName } = payload;
-  const result = await prisma.callHistory.create({
-    data: {
-      senderId,
-      receiverId,
-      type,
-      // channelName,
-      // status: CALL_STATUS.ongoing,
-      // startTime: moment().toDate(),
+const generateToken = async (callId: string, userId: string) => {
+  if (!config.agora.appId || !config.agora.appCertificate) {
+    throw new AppError(httpStatus.SERVICE_UNAVAILABLE, 'Agora is not configured');
+  }
+  const call = await prisma.callHistory.findFirst({
+    where: {
+      id: callId,
+      OR: [{ senderId: userId }, { receiverId: userId }],
+      status: { in: ['ringing', 'accepted'] },
     },
   });
-
-  return result;
-};
-
-const endCall = async (id: string) => {
-  const result = await prisma.callHistory.findUnique({ where: { id } });
-  if (!result) throw new AppError(httpStatus.NOT_FOUND, 'Call not found');
-
-  // const duration = Math.floor(
-  //   (Date.now() - new Date(result.startTime as Date).getTime()) / 1000,
-  // );
-
-  // const updatedCall = await prisma.callHistory.update({
-  //   where: { id: id },
-  //   data: { status: 'completed', endTime: new Date(), duration },
-  // });
-
-  // return updatedCall;
+  if (!call) {
+    throw new AppError(httpStatus.FORBIDDEN, 'Call not found or access denied');
+  }
+  const uid = numericAgoraUid(userId);
+  return {
+    token: generateAgoraToken(call.channelName, uid),
+    appId: config.agora.appId,
+    channelName: call.channelName,
+    uid,
+    expiresIn: 3600,
+  };
 };
 
 export const agoraService = {
   generateToken,
-  StartCall,
-  endCall,
 };

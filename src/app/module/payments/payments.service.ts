@@ -4,6 +4,7 @@ import {
   BookingStatus,
   PAYMENT_STATUS,
   Role,
+  type Prisma,
 } from '../../../../generated/prisma/index.js';
 import AppError from '@app/error/AppError.js';
 import { paginationHelper } from '@app/helpers/pagination.helpers.js';
@@ -13,7 +14,10 @@ import _ from 'lodash';
 import { resolveStripeCustomer } from '../bookings/bookings.utils.js';
 import { toFixed2 } from '../bookings/bookings.constants.js';
 import { months } from './payments.constants.js';
-import type { RevenueCatEvent } from './payments.interface.js';
+import type {
+  RevenueCatEvent,
+  RevenueCatWebhookPayload,
+} from './payments.interface.js';
 
 interface MonthlyData {
   month: string;
@@ -359,168 +363,289 @@ const confirmPayment = async (payload: {
   }
 };
 
-const revenueCatWebHook = async (payload: { event: RevenueCatEvent }) => {
+const mongoIdPattern = /^[0-9a-fA-F]{24}$/;
+
+const resolveRevenueCatUser = async (event: RevenueCatEvent) => {
+  const candidates = [
+    event.original_app_user_id,
+    event.app_user_id,
+    ...(event.aliases || []),
+  ].filter((id): id is string => Boolean(id && mongoIdPattern.test(id)));
+  if (!candidates.length) return null;
+  return prisma.user.findFirst({ where: { id: { in: candidates } } });
+};
+
+const eventSubscriptionWhere = (event: RevenueCatEvent, userId: string) => {
+  if (event.transaction_id) return { userId, trnId: event.transaction_id };
+  if (event.original_transaction_id) {
+    return {
+      userId,
+      originalTrnId: event.original_transaction_id,
+      ...(event.product_id ? { productId: event.product_id } : {}),
+    };
+  }
+  return {
+    userId,
+    ...(event.product_id ? { productId: event.product_id } : {}),
+  };
+};
+
+const revenueCatWebHook = async (payload: RevenueCatWebhookPayload) => {
+  console.log('🚀 ~ revenueCatWebHook ~ payload:', payload);
+  if (!payload?.event?.id || !payload.event.type) {
+    throw new AppError(httpStatus.BAD_REQUEST, 'Invalid RevenueCat payload');
+  }
   const event = payload.event;
 
-  console.log('🚀 RevenueCat Event:', event);
-
-  const {
-    type,
-    app_user_id,
-    product_id,
-    transaction_id,
-    expiration_at_ms,
-    purchased_at_ms,
-    entitlement_ids,
-    store,
-  } = event;
-
-  const isValidUserId = /^[0-9a-fA-F]{24}$/.test(app_user_id);
-
-  if (!isValidUserId) {
-    console.warn(
-      `Invalid app_user_id received: ${app_user_id}, skipping event.`,
-    );
-    return;
-  }
-
-  const user = await prisma.user.findUnique({
-    where: {
-      id: app_user_id,
-    },
+  let webhookRecord = await prisma.revenueCatWebhookEvent.findUnique({
+    where: { eventId: event.id },
   });
-
-  if (!user) {
-    console.warn(`User not found: ${app_user_id}`);
-    return;
+  if (webhookRecord?.processed) {
+    const productChangeAlreadyApplied =
+      event.type === 'PRODUCT_CHANGE'
+        ? await prisma.subscription.findFirst({
+            where: { trnId: event.id },
+            select: { id: true },
+          })
+        : null;
+    if (event.type !== 'PRODUCT_CHANGE' || productChangeAlreadyApplied) {
+      return { processed: true, duplicate: true, eventId: event.id };
+    }
+    webhookRecord = await prisma.revenueCatWebhookEvent.update({
+      where: { eventId: event.id },
+      data: { processed: false, processedAt: null },
+    });
   }
-
-  switch (type) {
-    case 'INITIAL_PURCHASE':
-    case 'RENEWAL': {
-      // Prevent duplicate webhook processing
-      const existing = await prisma.subscription.findFirst({
-        where: {
-          trnId: transaction_id,
+  if (!webhookRecord) {
+    try {
+      webhookRecord = await prisma.revenueCatWebhookEvent.create({
+        data: {
+          eventId: event.id,
+          type: event.type,
+          appUserId: event.app_user_id || event.original_app_user_id || null,
+          payload: payload as unknown as Prisma.InputJsonValue,
         },
       });
+    } catch (error: unknown) {
+      webhookRecord = await prisma.revenueCatWebhookEvent.findUnique({
+        where: { eventId: event.id },
+      });
+      if (!webhookRecord) throw error;
+      if (webhookRecord.processed) {
+        return { processed: true, duplicate: true, eventId: event.id };
+      }
+    }
+  }
+
+  if (event.type === 'TEST') {
+    await prisma.revenueCatWebhookEvent.update({
+      where: { eventId: event.id },
+      data: { processed: true, processedAt: new Date() },
+    });
+    return { processed: true, test: true, eventId: event.id };
+  }
+
+  if (event.type === 'TRANSFER') {
+    const sourceIds = (event.transferred_from || []).filter(id =>
+      mongoIdPattern.test(id),
+    );
+    if (sourceIds.length) {
+      await prisma.subscription.updateMany({
+        where: { userId: { in: sourceIds }, isActive: true },
+        data: { isActive: false },
+      });
+    }
+    await prisma.revenueCatWebhookEvent.update({
+      where: { eventId: event.id },
+      data: { processed: true, processedAt: new Date() },
+    });
+    return { processed: true, eventId: event.id, type: event.type };
+  }
+
+  const user = await resolveRevenueCatUser(event);
+  if (!user) {
+    throw new AppError(
+      httpStatus.NOT_FOUND,
+      'RevenueCat App User ID does not match a user',
+    );
+  }
+
+  const activateTypes = new Set([
+    'INITIAL_PURCHASE',
+    'RENEWAL',
+    'PRODUCT_CHANGE',
+    'NON_RENEWING_PURCHASE',
+    'REFUND_REVERSED',
+  ]);
+
+  if (activateTypes.has(event.type)) {
+    const activeProductId =
+      event.type === 'PRODUCT_CHANGE'
+        ? event.new_product_id || event.product_id
+        : event.product_id;
+    const transactionId =
+      event.type === 'PRODUCT_CHANGE' ? event.id : event.transaction_id;
+
+    if (!activeProductId || !transactionId || !event.purchased_at_ms) {
+      throw new AppError(
+        httpStatus.BAD_REQUEST,
+        `Missing purchase fields for ${event.type}`,
+      );
+    }
+    const pkg = await prisma.packages.findFirst({
+      where: { productId: activeProductId },
+    });
+    if (!pkg) {
+      throw new AppError(
+        httpStatus.NOT_FOUND,
+        `Package not found for RevenueCat product ${activeProductId}`,
+      );
+    }
+
+    const existing = await prisma.subscription.findFirst({
+      where: { userId: user.id, trnId: transactionId },
+    });
+    await prisma.$transaction(async tx => {
+      await tx.subscription.updateMany({
+        where: {
+          userId: user.id,
+          isActive: true,
+          ...(existing ? { id: { not: existing.id } } : {}),
+        },
+        data: { isActive: false, pendingProductId: null },
+      });
+
+      const subscriptionData = {
+        packageId: pkg.id,
+        trnId: transactionId,
+        originalTrnId: event.original_transaction_id || null,
+        productId: activeProductId,
+        entitlementId: event.entitlement_ids?.[0] || null,
+        purchasedAt: new Date(event.purchased_at_ms as number),
+        expiresAt: event.expiration_at_ms
+          ? new Date(event.expiration_at_ms)
+          : null,
+        graceEndsAt: null,
+        store: event.store || null,
+        environment: event.environment || null,
+        isPaid: true,
+        isActive: true,
+        isExpired: false,
+        willRenew: event.type !== 'NON_RENEWING_PURCHASE',
+        cancelReason: null,
+        pendingProductId: null,
+        lastEventId: event.id,
+      };
 
       if (existing) {
-        console.log(`Transaction ${transaction_id} already processed.`);
-        return;
+        await tx.subscription.update({
+          where: { id: existing.id },
+          data: subscriptionData,
+        });
+      } else {
+        await tx.subscription.create({
+          data: { userId: user.id, ...subscriptionData },
+        });
       }
-
-      const pkg = await prisma.packages.findFirst({
-        where: {
-          productId: product_id,
-        },
+      await tx.revenueCatWebhookEvent.update({
+        where: { eventId: event.id },
+        data: { processed: true, processedAt: new Date() },
       });
-
-      if (!pkg) {
-        console.error(`Package not found for productId: ${product_id}`);
-        return;
-      }
-
-      await prisma.subscription.upsert({
-        where: {
-          userId: user.id,
-        },
-        create: {
-          userId: user.id,
-          packageId: pkg.id,
-          trnId: transaction_id,
-          productId: product_id,
-          entitlementId: entitlement_ids?.[0] ?? null,
-          purchasedAt: new Date(purchased_at_ms),
-          expiresAt: expiration_at_ms ? new Date(expiration_at_ms) : null,
-          store,
-
-          isPaid: true,
-          isActive: true,
-          isExpired: false,
-        },
-        update: {
-          packageId: pkg.id,
-          trnId: transaction_id,
-          productId: product_id,
-          entitlementId: entitlement_ids?.[0] ?? null,
-          purchasedAt: new Date(purchased_at_ms),
-          expiresAt: expiration_at_ms ? new Date(expiration_at_ms) : null,
-          store,
-
-          isPaid: true,
-          isActive: true,
-          isExpired: false,
-        },
-      });
-
-      console.log(`Subscription updated successfully for user ${user.id}`);
-
-      break;
+    });
+  } else {
+    switch (event.type) {
+      case 'CANCELLATION':
+        await prisma.subscription.updateMany({
+          where: {
+            ...eventSubscriptionWhere(event, user.id),
+            isActive: true,
+          },
+          data: {
+            isActive: false,
+            willRenew: false,
+            cancelReason: event.cancel_reason || 'CANCELLATION',
+            lastEventId: event.id,
+          },
+        });
+        break;
+      case 'SUBSCRIPTION_PAUSED':
+        await prisma.subscription.updateMany({
+          where: {
+            ...eventSubscriptionWhere(event, user.id),
+            isActive: true,
+          },
+          data: {
+            willRenew: false,
+            cancelReason: 'SUBSCRIPTION_PAUSED',
+            lastEventId: event.id,
+          },
+        });
+        break;
+      case 'UNCANCELLATION':
+        await prisma.subscription.updateMany({
+          where: {
+            ...eventSubscriptionWhere(event, user.id),
+            isActive: true,
+          },
+          data: { willRenew: true, cancelReason: null, lastEventId: event.id },
+        });
+        break;
+      case 'SUBSCRIPTION_EXTENDED':
+        await prisma.subscription.updateMany({
+          where: {
+            ...eventSubscriptionWhere(event, user.id),
+            isActive: true,
+          },
+          data: {
+            ...(event.expiration_at_ms
+              ? { expiresAt: new Date(event.expiration_at_ms) }
+              : {}),
+            lastEventId: event.id,
+          },
+        });
+        break;
+      case 'EXPIRATION':
+        const expirationTime = event.expiration_at_ms
+          ? new Date(event.expiration_at_ms)
+          : new Date();
+        const graceEndsAt = new Date(
+          expirationTime.getTime() + 3 * 24 * 60 * 60 * 1000,
+        );
+        await prisma.subscription.updateMany({
+          where: {
+            ...eventSubscriptionWhere(event, user.id),
+            isActive: true,
+          },
+          data: {
+            isActive: graceEndsAt > new Date(),
+            isExpired: graceEndsAt <= new Date(),
+            willRenew: false,
+            expiresAt: expirationTime,
+            graceEndsAt,
+            cancelReason: event.expiration_reason || null,
+            lastEventId: event.id,
+          },
+        });
+        break;
+      case 'BILLING_ISSUE':
+      case 'INVOICE_ISSUANCE':
+      case 'TEMPORARY_ENTITLEMENT_GRANT':
+        break;
+      default:
+        console.warn(`Unhandled RevenueCat event: ${event.type}`);
     }
-
-    case 'EXPIRATION': {
-      await prisma.subscription.update({
-        where: {
-          userId: user.id,
-        },
-        data: {
-          isActive: false,
-          isExpired: true,
-        },
-      });
-
-      console.log(`Subscription expired for user ${user.id}`);
-
-      break;
-    }
-
-    case 'CANCELLATION': {
-      console.log(
-        `Subscription cancelled by user (auto renew off): ${user.id}`,
-      );
-
-      break;
-    }
-
-    case 'BILLING_ISSUE': {
-      console.warn(
-        `Billing issue detected for user ${user.id}. Waiting for grace period.`,
-      );
-
-      // TODO:
-      // Send Push Notification
-      // Send Email
-
-      break;
-    }
-
-    case 'PRODUCT_CHANGE': {
-      console.log(
-        `Product change requested: ${product_id} -> ${event.new_product_id}`,
-      );
-
-      break;
-    }
-
-    case 'UNCANCELLATION': {
-      console.log(`Subscription uncancelled for user ${user.id}`);
-
-      break;
-    }
-
-    case 'TRANSFER': {
-      console.log(`Subscription transferred for app_user_id ${user.id}`);
-
-      // TODO:
-      // Handle subscription transfer if needed
-
-      break;
-    }
-
-    default:
-      console.warn(`Unhandled RevenueCat Event: ${type}`);
+    await prisma.revenueCatWebhookEvent.update({
+      where: { eventId: event.id },
+      data: { processed: true, processedAt: new Date() },
+    });
   }
+
+  return {
+    processed: true,
+    duplicate: false,
+    eventId: event.id,
+    type: event.type,
+  };
 };
 
 const getAllPayments = async (query: Record<string, any>) => {

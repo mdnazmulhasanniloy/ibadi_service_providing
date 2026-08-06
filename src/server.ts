@@ -9,6 +9,7 @@ import '@app/workers/message.worker.js';
 import '@app/workers/booking.worker.js';
 import '@app/workers/notification.worker.js';
 import { isValidFcmToken } from '@app/module/auth/user.utils.js';
+import { expireEndedSubscriptionGracePeriods } from '@app/utils/subscriptionGraceTask.js';
 
 const socketServer = createServer(app);
 let server: Server;
@@ -37,6 +38,16 @@ const startHttpServer = () =>
         ),
       );
       defaultTask();
+      expireEndedSubscriptionGracePeriods().catch(error =>
+        console.error('Subscription grace cleanup failed:', error),
+      );
+      setInterval(
+        () =>
+          expireEndedSubscriptionGracePeriods().catch(error =>
+            console.error('Subscription grace cleanup failed:', error),
+          ),
+        60 * 60 * 1000,
+      ).unref();
       // isValidFcmToken(
       //   'cXSOWDGkSIOiBOLlPHfve2:APA91bHHhPtWjVAhoeHeuXJKK79iNTVMtHXJ-_trDai2qjSE1YyILDmJnPWLdxQJ-1IXMTLAkERSgDXc2gyFso_XNqlhtoVir5Q0Fe5412TBa4iqFxtU43A',
       // );

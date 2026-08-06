@@ -48,6 +48,12 @@ router.get(
 );
 
 router.get(
+  '/provider-monthly-analytics',
+  auth(USER_ROLE.service_provider),
+  bookingsController.getProviderMonthlyAnalytics,
+);
+
+router.get(
   '/:id',
   auth(USER_ROLE.user, USER_ROLE.service_provider),
   bookingsController.getBookingsById,

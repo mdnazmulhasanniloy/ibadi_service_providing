@@ -8,7 +8,6 @@ interface IProducts {
 class StripeServices<T> {
   private stripe() {
     return new StripeType(config.stripe.stripe_api_secret as string, {
-      apiVersion: '2026-06-24.dahlia',
       typescript: true,
     });
   }

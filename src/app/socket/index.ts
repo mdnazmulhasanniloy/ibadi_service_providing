@@ -112,9 +112,19 @@ const initializeSocket = async (server: HttpServer) => {
     );
 
     // ── call ─────────────────────────────────────────
-      socket.on('call', (payload: any, callback: any) => {
-        
-      });
+    socket.on('call', (payload: any, callback: any) => {});
+
+    // ── accept:call ─────────────────────────────────────────
+    socket.on('accept:call', (payload: any, callback: any) => {});
+
+    // ── reject:call ─────────────────────────────────────────
+    socket.on('reject:call', (payload: any, callback: any) => {});
+
+    // ── cancel:call ─────────────────────────────────────────
+    socket.on('cancel:call', (payload: any, callback: any) => {});
+
+    // ── end:call ─────────────────────────────────────────
+    socket.on('end:call', (payload: any, callback: any) => {});
 
     // ── Disconnect ─────────────────────────────────────────
     socket.on('disconnect', async () => {

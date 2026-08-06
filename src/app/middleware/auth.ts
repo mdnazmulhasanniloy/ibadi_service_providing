@@ -1,7 +1,7 @@
 import httpStatus from 'http-status';
 import jwt from 'jsonwebtoken';
-import { type JwtPayload } from 'jsonwebtoken'; 
-import type {  NextFunction, Request, Response } from 'express'; 
+import { type JwtPayload } from 'jsonwebtoken';
+import type { NextFunction, Request, Response } from 'express';
 import catchAsync from '@app/utils/catchAsync.js';
 import AppError from '@app/error/AppError.js';
 import config from '@app/config/index.js';
@@ -10,6 +10,7 @@ import prisma from '@app/shared/prisma.js';
 const auth = (...userRoles: string[]) => {
   return catchAsync(async (req: Request, res: Response, next: NextFunction) => {
     const token = req?.headers?.authorization?.split(' ')[1];
+    console.log('🚀 ~ auth ~ token:', token);
 
     if (!token) {
       throw new AppError(httpStatus.UNAUTHORIZED, 'you are not authorized!');
@@ -21,7 +22,8 @@ const auth = (...userRoles: string[]) => {
         token,
         config.jwt_access_secret as string,
       ) as JwtPayload;
-    } catch {
+    } catch (error) {
+      console.log(error);
       throw new AppError(httpStatus.UNAUTHORIZED, 'unauthorized');
     }
 

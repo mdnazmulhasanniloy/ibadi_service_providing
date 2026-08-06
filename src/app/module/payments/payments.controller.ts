@@ -3,8 +3,8 @@ import type { Request, Response } from 'express';
 import catchAsync from '@app/utils/catchAsync.js';
 import sendResponse from '@app/utils/sendResponse.js';
 import { paymentsService } from './payments.service.js';
-import config from '@app/config/index.js';
 import AppError from '@app/error/AppError.js';
+import { verifyRevenueCatWebhook } from './payments.utils.js';
 
 const confirmPayment = catchAsync(async (req: Request, res: Response) => {
   // const result = await paymentsService.confirmPayment();
@@ -23,9 +23,7 @@ const getAllPayments = catchAsync(async (req: Request, res: Response) => {
   });
 });
 const revenueCatWebHook = catchAsync(async (req: Request, res: Response) => {
-  const authHeader = req.headers['authorization'];
-  console.log(authHeader !== config?.revenuecat_webhook_secret);
-  if (authHeader !== config?.revenuecat_webhook_secret) {
+  if (!verifyRevenueCatWebhook(req)) {
     throw new AppError(httpStatus?.UNAUTHORIZED, 'Unauthorized Access');
   }
   const result = await paymentsService.revenueCatWebHook(req?.body);

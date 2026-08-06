@@ -715,6 +715,146 @@ const canceledBookings = async (id: string) => {
   return result;
 };
 
+const getProviderMonthlyAnalytics = async (
+  providerId: string,
+  month?: string,
+) => {
+  const monthPattern = /^\d{4}-(0[1-9]|1[0-2])$/;
+  if (month && !monthPattern.test(month)) {
+    throw new AppError(httpStatus.BAD_REQUEST, 'month must be in YYYY-MM format');
+  }
+
+  const selectedMonth = month || moment().format('YYYY-MM');
+  const periodStart = moment
+    .parseZone(`${selectedMonth}-01T00:00:00+06:00`)
+    .toDate();
+  const periodEnd = moment(periodStart).add(1, 'month').toDate();
+  const previousStart = moment(periodStart).subtract(1, 'month').toDate();
+
+  const baseWhere: Prisma.BookingsWhereInput = {
+    providerId,
+    isDeleted: false,
+  };
+
+  const [bookings, previousBookings] = await Promise.all([
+    prisma.bookings.findMany({
+      where: {
+        ...baseWhere,
+        createdAt: { gte: periodStart, lt: periodEnd },
+      },
+      select: {
+        status: true,
+        price: true,
+        bookingType: true,
+        createdAt: true,
+      },
+    }),
+    prisma.bookings.findMany({
+      where: {
+        ...baseWhere,
+        createdAt: { gte: previousStart, lt: periodStart },
+      },
+      select: { status: true },
+    }),
+  ]);
+
+  const acceptedStatuses: BookingStatus[] = [
+    BookingStatus.accepted,
+    BookingStatus.ongoing,
+    BookingStatus.complete,
+  ];
+  const count = (status: BookingStatus) =>
+    bookings.filter(booking => booking.status === status).length;
+  const acceptedBookings = bookings.filter(booking =>
+    acceptedStatuses.includes(booking.status),
+  );
+  const previousAccepted = previousBookings.filter(booking =>
+    acceptedStatuses.includes(booking.status),
+  ).length;
+  const totalRequests = bookings.length;
+  const acceptanceRate = totalRequests
+    ? Number(((acceptedBookings.length / totalRequests) * 100).toFixed(2))
+    : 0;
+  const previousAcceptanceRate = previousBookings.length
+    ? Number(((previousAccepted / previousBookings.length) * 100).toFixed(2))
+    : 0;
+  const completedBookings = count(BookingStatus.complete);
+  const totalBookingValue = acceptedBookings.reduce(
+    (total, booking) => total + booking.price,
+    0,
+  );
+
+  const daysInMonth = moment(periodStart).daysInMonth();
+  const dailyRequests = Array.from({ length: daysInMonth }, (_, index) => {
+    const day = index + 1;
+    const dayBookings = bookings.filter(
+      booking =>
+        Number(
+          new Intl.DateTimeFormat('en-US', {
+            day: 'numeric',
+            timeZone: 'Asia/Dhaka',
+          }).format(booking.createdAt),
+        ) === day,
+    );
+    return {
+      day,
+      totalRequests: dayBookings.length,
+      acceptedBookings: dayBookings.filter(booking =>
+        acceptedStatuses.includes(booking.status),
+      ).length,
+    };
+  });
+
+  const percentageChange = (current: number, previous: number) => {
+    if (!previous) return current ? 100 : 0;
+    return Number((((current - previous) / previous) * 100).toFixed(2));
+  };
+
+  return {
+    period: {
+      month: selectedMonth,
+      timezone: 'Asia/Dhaka',
+      start: periodStart,
+      endExclusive: periodEnd,
+    },
+    summary: {
+      totalBookingRequests: totalRequests,
+      totalAcceptedBookings: acceptedBookings.length,
+      acceptanceRate,
+      pendingBookings:
+        count(BookingStatus.pending) + count(BookingStatus.requested),
+      ongoingBookings: count(BookingStatus.ongoing),
+      completedBookings,
+      cancelledBookings: count(BookingStatus.canceled),
+      totalBookingValue: Number(totalBookingValue.toFixed(2)),
+      averageAcceptedBookingValue: acceptedBookings.length
+        ? Number((totalBookingValue / acceptedBookings.length).toFixed(2))
+        : 0,
+      completionRate: acceptedBookings.length
+        ? Number(((completedBookings / acceptedBookings.length) * 100).toFixed(2))
+        : 0,
+    },
+    bookingTypeBreakdown: {
+      oneTime: bookings.filter(booking => booking.bookingType === 'one_time').length,
+      weekly: bookings.filter(booking => booking.bookingType === 'weekly').length,
+    },
+    comparisonWithPreviousMonth: {
+      totalBookingRequests: previousBookings.length,
+      totalAcceptedBookings: previousAccepted,
+      acceptanceRate: previousAcceptanceRate,
+      requestChangePercent: percentageChange(totalRequests, previousBookings.length),
+      acceptedChangePercent: percentageChange(
+        acceptedBookings.length,
+        previousAccepted,
+      ),
+      acceptanceRateChangePoints: Number(
+        (acceptanceRate - previousAcceptanceRate).toFixed(2),
+      ),
+    },
+    dailyRequests,
+  };
+};
+
 export const bookingsService = {
   createBookings,
   getAllBookings,
@@ -723,4 +863,5 @@ export const bookingsService = {
   approvedRequest,
   rejectBookings,
   canceledBookings,
+  getProviderMonthlyAnalytics,
 };

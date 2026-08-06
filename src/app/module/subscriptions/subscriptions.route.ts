@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { subscriptionsController } from './subscriptions.controller.js';
 import auth from '@app/middleware/auth.js';
-import { USER_ROLE } from '../users/user.constants.js';
+import { Role, USER_ROLE } from '../users/user.constants.js';
 
 const router: Router = Router();
 
@@ -10,6 +10,12 @@ router.post(
   auth(USER_ROLE.service_provider),
   subscriptionsController.getFreeTrial,
 );
+router.post(
+  '/manual-update',
+  auth(USER_ROLE.service_provider),
+  // validateRequest(SubscriptionValidation.manualSubscriptionValidation),
+  subscriptionsController.manualSubscriptionUpdate,
+);
 // router.patch('/:id', subscriptionsController.updateSubscriptions);
 // router.delete('/:id', subscriptionsController.deleteSubscriptions);
 router.get(
@@ -17,11 +23,19 @@ router.get(
   auth(USER_ROLE.service_provider),
   subscriptionsController.getMySubscriptions,
 );
+
 router.get(
   '/active',
   auth(USER_ROLE.service_provider),
   subscriptionsController.getActiveSubscriptions,
 );
+
+router.get(
+  '/current',
+  auth(USER_ROLE.service_provider),
+  subscriptionsController.getCurrentSubscription,
+);
+
 router.get(
   '/:id',
   auth(
@@ -32,6 +46,7 @@ router.get(
   ),
   subscriptionsController.getSubscriptionsById,
 );
+
 router.get(
   '/',
   auth(

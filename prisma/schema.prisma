@@ -97,7 +97,7 @@ model User {
   providerPayments Payments[] @relation("ProviderPayments")
   favorites Favorites[] 
   address Address[] 
-  subscription Subscription?
+  subscription Subscription[]
 
 }
 
@@ -448,6 +448,12 @@ model CallHistory {
    senderId String @db.ObjectId
    receiverId String @db.ObjectId 
    type CALL_TYPE @default(audio_call)
+   channelName String @unique
+   status CALL_STATUS @default(ringing)
+   startedAt DateTime @default(now())
+   answeredAt DateTime?
+   endedAt DateTime?
+   duration Int?
 
 
   createdAt DateTime @default(now())
@@ -534,7 +540,7 @@ model Packages {
   duration Int
   productId String
   description String 
-  price Int 
+  price Float 
   isRecommended Boolean
   createdAt DateTime @default(now())
   updateAt DateTime @updatedAt
@@ -545,21 +551,43 @@ model Packages {
 model Subscription {
   id              String   @id @default(auto()) @map("_id") @db.ObjectId
   packageId       String? @db.ObjectId
-  userId          String   @unique @db.ObjectId
+  userId          String   @db.ObjectId
   trnId           String?
   expiresAt       DateTime?
+  graceEndsAt     DateTime?
   isPaid          Boolean  @default(false)
   isActive        Boolean  @default(false)
   isExpired       Boolean  @default(false)
   entitlementId   String?
   productId       String?
   store           String?
+  environment     String?
+  originalTrnId   String?
+  pendingProductId String?
+  willRenew       Boolean?
+  cancelReason    String?
+  lastEventId     String?
   purchasedAt     DateTime?
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
   package Packages? @relation(fields: [packageId], references: [id], onDelete: Cascade)
+
+  @@index([userId, isActive, expiresAt])
+  @@index([originalTrnId])
+}
+
+model RevenueCatWebhookEvent {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  eventId     String   @unique
+  type        String
+  appUserId   String?
+  processed   Boolean  @default(false)
+  payload     Json
+  processedAt DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }
 
  
@@ -643,6 +671,15 @@ enum Days {
 enum CALL_TYPE {
   audio_call
   video_call
+}
+
+enum CALL_STATUS {
+  ringing
+  accepted
+  rejected
+  cancelled
+  completed
+  missed
 }
  
 enum Role {

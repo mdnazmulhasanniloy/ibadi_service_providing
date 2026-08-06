@@ -7,5 +7,6 @@ export const createCallHistorySchema = z.object({
         error: 'receiverId is required',
       })
       .min(1, 'receiverId cannot be empty'),
+    type: z.enum(['audio_call', 'video_call']).default('audio_call'),
   }),
 });

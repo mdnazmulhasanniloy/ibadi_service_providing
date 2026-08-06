@@ -13,6 +13,26 @@ router.post(
   validateRequest(createCallHistorySchema),
   callHistoryController.createCallHistory,
 );
+router.patch(
+  '/:id/accept',
+  auth(USER_ROLE.user, USER_ROLE.service_provider),
+  callHistoryController.acceptCall,
+);
+router.patch(
+  '/:id/reject',
+  auth(USER_ROLE.user, USER_ROLE.service_provider),
+  callHistoryController.rejectCall,
+);
+router.patch(
+  '/:id/cancel',
+  auth(USER_ROLE.user, USER_ROLE.service_provider),
+  callHistoryController.cancelCall,
+);
+router.patch(
+  '/:id/end',
+  auth(USER_ROLE.user, USER_ROLE.service_provider),
+  callHistoryController.endCall,
+);
 // router.patch('/:id', callHistoryController.updateCallHistory);
 router.delete(
   '/:id',

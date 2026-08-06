@@ -48,6 +48,22 @@ const getActiveSubscriptions = catchAsync(
   },
 );
 
+const getCurrentSubscription = catchAsync(
+  async (req: Request, res: Response) => {
+    const result = await subscriptionsService.getCurrentSubscription(
+      req.user.userId,
+    );
+    sendResponse(res, {
+      statusCode: httpStatus.OK,
+      success: true,
+      message: result.hasActiveSubscription
+        ? 'Current subscription fetched successfully'
+        : 'No active subscription found',
+      data: result,
+    });
+  },
+);
+
 const getAllSubscriptions = catchAsync(async (req: Request, res: Response) => {
   const result = await subscriptionsService.getAllSubscriptions(req.query);
   sendResponse(res, {
@@ -94,6 +110,21 @@ const deleteSubscriptions = catchAsync(async (req: Request, res: Response) => {
     data: result,
   });
 });
+const manualSubscriptionUpdate = catchAsync(
+  async (req: Request, res: Response) => {
+    const result = await subscriptionsService.manualSubscriptionUpdate(
+      req.body,
+      req.user.userId,
+    );
+
+    sendResponse(res, {
+      statusCode: httpStatus.OK,
+      success: true,
+      message: 'Subscription updated successfully',
+      data: result,
+    });
+  },
+);
 
 export const subscriptionsController = {
   createSubscriptions,
@@ -103,5 +134,7 @@ export const subscriptionsController = {
   deleteSubscriptions,
   getMySubscriptions,
   getActiveSubscriptions,
+  getCurrentSubscription,
   getFreeTrial,
+  manualSubscriptionUpdate,
 };

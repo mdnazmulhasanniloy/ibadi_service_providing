@@ -8,7 +8,7 @@ const router: Router = Router();
  
 
 router.get(
-  '/token',
+  '/token/:callId',
   auth(
     USER_ROLE.user,
     USER_ROLE.sub_admin,

@@ -23,10 +23,15 @@ import { servicesRoutes } from '@app/module/services/services.route.js';
 import { clientReviewRoutes } from '@app/module/clientReview/clientReview.route.js';
 import { packagesRoutes } from '@app/module/packages/packages.route.js';
 import { subscriptionsRoutes } from '@app/module/subscriptions/subscriptions.route.js';
+import { agoraRoutes } from '@app/module/agora/agora.route.js';
 
 const router: Router = Router();
 
 const moduleRoutes = [
+  {
+    path: '/agora',
+    route: agoraRoutes,
+  },
   {
     path: '/subscriptions',
     route: subscriptionsRoutes,

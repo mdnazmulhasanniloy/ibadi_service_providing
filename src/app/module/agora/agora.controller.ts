@@ -5,7 +5,10 @@ import { agoraService } from './agora.service.js';
 import sendResponse from '@app/utils/sendResponse.js';
 
 const generateToken = catchAsync(async (req: Request, res: Response) => {
-  const result = await agoraService.generateToken(req.query);
+  const result = await agoraService.generateToken(
+    req.params.callId as string,
+    req.user.userId,
+  );
   sendResponse(res, {
     statusCode: httpStatus.OK,
     success: true,

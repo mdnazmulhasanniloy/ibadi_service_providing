@@ -173,6 +173,21 @@ const canceledBookings = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+const getProviderMonthlyAnalytics = catchAsync(
+  async (req: Request, res: Response) => {
+    const result = await bookingsService.getProviderMonthlyAnalytics(
+      req.user.userId,
+      req.query.month as string | undefined,
+    );
+    sendResponse(res, {
+      statusCode: httpStatus.OK,
+      success: true,
+      message: 'Provider monthly analytics fetched successfully',
+      data: result,
+    });
+  },
+);
+
 // const deleteBookings = catchAsync(async (req: Request, res: Response) => {
 //   const result = await bookingsService.deleteBookings(req.params.id as string);
 //   sendResponse(res, {
@@ -194,5 +209,6 @@ export const bookingsController = {
   canceledBookings,
   acceptBookings,
   completeBookings,
+  getProviderMonthlyAnalytics,
   // deleteBookings,
 };
