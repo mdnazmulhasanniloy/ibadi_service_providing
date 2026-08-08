@@ -363,43 +363,46 @@ const deleteSubscriptions = async (id: string) => {
 };
 
 const manualSubscriptionUpdate = async (payload: any, userId: string) => {
-  const subscriber = payload?.subscriber;
-  if (!subscriber) {
+  const packageId = payload?.packageId;
+  const subscriber = payload?.payload?.subscriber;
+
+  if (!packageId || !subscriber) {
     throw new AppError(
       httpStatus.BAD_REQUEST,
-      'Invalid payload: subscriber not found',
+      'packageId and payload.subscriber are required',
     );
   }
 
-  const entitlementEntries = Object.entries(subscriber.entitlements || {});
-  if (entitlementEntries.length === 0) {
+  const entitlementEntry = Object.entries(
+    subscriber.entitlements || {},
+  ).find(
+    ([, entitlement]) =>
+      (entitlement as any)?.product_identifier === packageId,
+  ) as [string, any] | undefined;
+
+  if (!entitlementEntry) {
     throw new AppError(
       httpStatus.BAD_REQUEST,
-      'No entitlement found in payload',
+      `No entitlement found for productId: ${packageId}`,
     );
   }
-  const [entitlementId, entitlementData] = entitlementEntries[0] as [
-    string,
-    any,
-  ];
 
-  const productIdentifier = entitlementData.product_identifier;
-  const subscriptionData = subscriber.subscriptions?.[productIdentifier];
-
-  if (!productIdentifier) {
+  const [entitlementId, entitlementData] = entitlementEntry;
+  const subscriptionData = subscriber.subscriptions?.[packageId];
+  if (!subscriptionData) {
     throw new AppError(
       httpStatus.BAD_REQUEST,
-      'product_identifier missing in entitlement',
+      `No subscription found for productId: ${packageId}`,
     );
   }
 
   const pkg = await prisma.packages.findFirst({
-    where: { productId: productIdentifier },
+    where: { productId: packageId },
   });
   if (!pkg) {
     throw new AppError(
       httpStatus.NOT_FOUND,
-      `Package not found for productId: ${productIdentifier}`,
+      `Package not found for productId: ${packageId}`,
     );
   }
 
