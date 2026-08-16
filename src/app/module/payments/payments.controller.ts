@@ -22,18 +22,18 @@ const getAllPayments = catchAsync(async (req: Request, res: Response) => {
     data: result,
   });
 });
-const revenueCatWebHook = catchAsync(async (req: Request, res: Response) => {
-  if (!verifyRevenueCatWebhook(req)) {
-    throw new AppError(httpStatus?.UNAUTHORIZED, 'Unauthorized Access');
-  }
-  const result = await paymentsService.revenueCatWebHook(req?.body);
-  sendResponse(res, {
-    success: true,
-    statusCode: httpStatus.OK,
-    data: result,
-    message: 'payment successful',
-  });
-});
+// const revenueCatWebHook = catchAsync(async (req: Request, res: Response) => {
+//   if (!verifyRevenueCatWebhook(req)) {
+//     throw new AppError(httpStatus?.UNAUTHORIZED, 'Unauthorized Access');
+//   }
+//   const result = await paymentsService.revenueCatWebHook(req?.body);
+//   sendResponse(res, {
+//     success: true,
+//     statusCode: httpStatus.OK,
+//     data: result,
+//     message: 'payment successful',
+//   });
+// });
 
 const getDashboardCards = catchAsync(async (req: Request, res: Response) => {
   const result = await paymentsService.getDashboardCards();
@@ -78,5 +78,5 @@ export const paymentsController = {
   getAllPayments,
   getDashboardCards,
   adminDashboardChart,
-  revenueCatWebHook,
+  // revenueCatWebHook,
 };

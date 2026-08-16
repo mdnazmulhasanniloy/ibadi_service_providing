@@ -2,6 +2,7 @@ configDependencies:
   '@pnpm/plugin-types-fixer': 0.1.0+sha512-bLww63gRHi7siYTqFJb5qNdcXadU0jv20Et6z5AryMZ7FlLolbEJOrXLpg8+amQZNHHNW1dfFUBGVw/9ezQbFg==
 
 onlyBuiltDependencies:
+  - '@firebase/util'
   - '@prisma/client'
   - '@prisma/engines'
   - bcrypt
@@ -9,4 +10,5 @@ onlyBuiltDependencies:
   - esbuild
   - msgpackr-extract
   - prisma
+  - protobufjs
   - utf-8-validate

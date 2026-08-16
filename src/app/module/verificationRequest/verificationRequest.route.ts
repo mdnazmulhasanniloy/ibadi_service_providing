@@ -8,7 +8,12 @@ import uploadMultiple from '@app/middleware/uploadMulti.js';
 
 const router: Router = Router();
 const uploads = multer({ storage: memoryStorage() });
-const userFiles: any[] = [{ name: 'images', maxCount: 5 }];
+const userFiles: any[] = [
+  { name: 'palliativeCare', maxCount: 5 },
+  { name: 'drivingLicense', maxCount: 5 },
+  { name: 'businessProfile', maxCount: 5 },
+  { name: 'document', maxCount: 5 },
+];
 
 router.post(
   '/',

@@ -111,12 +111,22 @@ model VerificationRequest {
 
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+ 
 
-
-  documents Images[]
+  documents Documents[]
   notifications Notification[]
 
   user User @relation(fields: [userId], references: [id])
+}
+
+model Documents{
+   id String @id @default(auto()) @map("_id") @db.ObjectId 
+   url String 
+   type VERIFICATION_DOCUMENT_TYPE?
+   requestId String? @db.ObjectId 
+
+
+   verificationRequest VerificationRequest? @relation(fields: [requestId], references: [id])
 }
 
 model DeviceHistory {
@@ -235,7 +245,7 @@ model serviceProviderInfo {
    
   images Images[]
   specialistsIn SpecialistsIn[]
-  
+  providerSubcategories  providerSubcategories[]
   othersRequiredTasks OthersRequiredTasks[]
   favorites Favorites[] 
 
@@ -294,6 +304,15 @@ model OthersTask {
 
 }
 
+model providerSubcategories {
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+  subcategoryId String @db.ObjectId
+  userId String @db.ObjectId
+
+  subcategory Subcategories? @relation(fields: [subcategoryId], references: [id])
+  user serviceProviderInfo? @relation(fields: [userId], references: [userId])
+}
+
 model Categories{
   id String @id @default(auto()) @map("_id") @db.ObjectId
   name String @unique
@@ -305,11 +324,11 @@ model Categories{
 
 
   specialistsIn SpecialistsIn[] 
-  subCategories SubCategories[]
+  subCategories Subcategories[]
   faq Faq[]
 }
 
-model SubCategories{
+model Subcategories{
   id String @id @default(auto()) @map("_id") @db.ObjectId
   name String @unique
   categoryId String @db.ObjectId
@@ -320,6 +339,9 @@ model SubCategories{
   updatedAt DateTime @updatedAt
 
   category Categories @relation(fields: [categoryId], references: [id])
+   providerSubcategory providerSubcategories[]
+
+  @@map("SubCategories")
 }
 
 model Reviews {
@@ -492,11 +514,9 @@ model Images {
    url String 
    messageId String? @db.ObjectId 
    userId String? @db.ObjectId  
-   requestId String? @db.ObjectId  
 
    message Messages? @relation(fields: [messageId], references: [id])
    serviceProviderInfo serviceProviderInfo? @relation(fields: [userId], references: [userId])
-   verificationRequest VerificationRequest? @relation(fields: [requestId], references: [id])
 
 }
 
@@ -555,44 +575,43 @@ model Subscription {
   trnId           String?
   expiresAt       DateTime?
   graceEndsAt     DateTime?
+  purchasedAt     DateTime?
   isPaid          Boolean  @default(false)
   isActive        Boolean  @default(false)
   isExpired       Boolean  @default(false)
-  entitlementId   String?
   productId       String?
-  store           String?
-  environment     String?
-  originalTrnId   String?
-  pendingProductId String?
-  willRenew       Boolean?
-  cancelReason    String?
-  lastEventId     String?
-  purchasedAt     DateTime?
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+
+  createdAt DateTime @default(now())
+  updateAt DateTime @updatedAt
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
   package Packages? @relation(fields: [packageId], references: [id], onDelete: Cascade)
 
   @@index([userId, isActive, expiresAt])
-  @@index([originalTrnId])
+  @@index([trnId])
 }
 
-model RevenueCatWebhookEvent {
-  id          String   @id @default(auto()) @map("_id") @db.ObjectId
-  eventId     String   @unique
-  type        String
-  appUserId   String?
-  processed   Boolean  @default(false)
-  payload     Json
-  processedAt DateTime?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+model SupportMessage {
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+  name String
+  email String
+  subject String
+  message String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
  
 
 // ─── Enums ───
+enum VERIFICATION_DOCUMENT_TYPE {
+  palliativeCare
+  drivingLicense
+  businessProfile
+  document
+}
+
 enum BookingDayStatus {
   pending
   confirmed
@@ -689,3 +708,4 @@ enum Role {
   user
   service_provider
 }
+

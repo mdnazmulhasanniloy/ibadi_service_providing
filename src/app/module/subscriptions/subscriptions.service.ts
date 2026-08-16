@@ -80,10 +80,10 @@ const getFreeTrial = async (userId: string) => {
       data: {
         userId,
         packageId: pkg.id,
-        productId: pkg.productId,
-        entitlementId: 'free_trial',
-        environment: 'MANUAL',
-        willRenew: false,
+        productId: 'free_trial',
+        // entitlementId: 'free_trial',
+        // environment: 'MANUAL',
+        // willRenew: false,
         purchasedAt,
         expiresAt,
         graceEndsAt,
@@ -294,17 +294,11 @@ const getCurrentSubscription = async (userId: string) => {
     hasActiveSubscription: true,
     subscription: {
       id: subscription.id,
-      entitlementId: subscription.entitlementId,
       productId:
         subscription.productId ||
         subscription.package?.productId ||
         fallbackPackage?.productId ||
         null,
-      store: subscription.store,
-      environment: subscription.environment,
-      willRenew: subscription.willRenew,
-      pendingProductId: subscription.pendingProductId,
-      cancelReason: subscription.cancelReason,
       purchasedAt: subscription.purchasedAt,
       expiresAt: subscription.expiresAt,
       graceEndsAt: subscription.graceEndsAt,
@@ -363,95 +357,99 @@ const deleteSubscriptions = async (id: string) => {
 };
 
 const manualSubscriptionUpdate = async (payload: any, userId: string) => {
-  const packageId = payload?.packageId;
-  const subscriber = payload?.payload?.subscriber;
+  const productId = payload?.productId;
 
-  if (!packageId || !subscriber) {
+  if (!productId || !userId) {
     throw new AppError(
       httpStatus.BAD_REQUEST,
-      'packageId and payload.subscriber are required',
-    );
-  }
-
-  const entitlementEntry = Object.entries(
-    subscriber.entitlements || {},
-  ).find(
-    ([, entitlement]) =>
-      (entitlement as any)?.product_identifier === packageId,
-  ) as [string, any] | undefined;
-
-  if (!entitlementEntry) {
-    throw new AppError(
-      httpStatus.BAD_REQUEST,
-      `No entitlement found for productId: ${packageId}`,
-    );
-  }
-
-  const [entitlementId, entitlementData] = entitlementEntry;
-  const subscriptionData = subscriber.subscriptions?.[packageId];
-  if (!subscriptionData) {
-    throw new AppError(
-      httpStatus.BAD_REQUEST,
-      `No subscription found for productId: ${packageId}`,
+      'productId and userId are required',
     );
   }
 
   const pkg = await prisma.packages.findFirst({
-    where: { productId: packageId },
+    where: { productId: productId },
   });
   if (!pkg) {
     throw new AppError(
       httpStatus.NOT_FOUND,
-      `Package not found for productId: ${packageId}`,
+      `Package not found for productId: ${productId}`,
     );
   }
 
+  // Idempotency check — same transaction already processed?
+  const trnId = payload?.store_transaction_id;
+  if (trnId) {
+    const alreadyProcessed = await prisma.subscription.findFirst({
+      where: { trnId },
+    });
+    if (alreadyProcessed) {
+      return alreadyProcessed; // already handled, avoid duplicate
+    }
+  }
+
+  // Safe date parsing helper
+  const parseDate = (value: any): Date | null => {
+    if (!value) return null;
+    const d = new Date(value);
+    return isNaN(d.getTime()) ? null : d;
+  };
+
+  const purchasedAt = parseDate(payload?.purchase_date) ?? new Date();
+  let expiresAt = parseDate(payload?.expires_date);
+
+  // Fallback: calculate expiresAt from package duration if not provided
+  if (!expiresAt) {
+    if (!pkg.duration) {
+      throw new AppError(
+        httpStatus.BAD_REQUEST,
+        'expires_date missing in payload and package has no duration to calculate it',
+      );
+    }
+    expiresAt = new Date(purchasedAt);
+    expiresAt.setDate(expiresAt.getDate() + pkg.duration);
+  }
+
+  const graceEndsAt = parseDate(payload?.grace_period_expires_date);
+
   const subscriptionPayloadData = {
     packageId: pkg.id,
-    trnId: subscriptionData?.store_transaction_id ?? null,
-    expiresAt: entitlementData.expires_date
-      ? new Date(entitlementData.expires_date)
-      : null,
-    graceEndsAt: entitlementData.grace_period_expires_date
-      ? new Date(entitlementData.grace_period_expires_date)
-      : null,
+    userId,
+    trnId: trnId ?? null,
+    expiresAt,
+    graceEndsAt,
     isPaid: true,
     isActive: true,
     isExpired: false,
-    entitlementId,
-    productId: pkg.productId,
-    store: subscriptionData?.store ?? null,
-    environment: subscriptionData?.is_sandbox ? 'sandbox' : 'production',
-    originalTrnId: subscriptionData?.store_transaction_id ?? null,
-    willRenew: subscriptionData
-      ? !subscriptionData.unsubscribe_detected_at
-      : null,
-    purchasedAt: entitlementData.purchase_date
-      ? new Date(entitlementData.purchase_date)
-      : null,
+    productId,
+    purchasedAt,
   };
 
-  // এই user-এর আগের সব active subscription deactivate করে দেই (নতুনটা বসানোর আগে)
-  const existingSubscription = await prisma.subscription.findFirst({
-    where: {
-      isActive: true,
-      userId,
-      isPaid: true,
-      isExpired: false,
-    },
-  });
+  // Wrap deactivate-old + create-new in a transaction (atomic)
+  const result = await prisma.$transaction(async tx => {
+    const existingSubscription = await tx.subscription.findFirst({
+      where: {
+        userId,
+        isActive: true,
+        isPaid: true,
+        isExpired: false,
+      },
+    });
 
-  const result = existingSubscription
-    ? await prisma.subscription.update({
+    if (existingSubscription) {
+      await tx.subscription.update({
         where: { id: existingSubscription.id },
-        data: subscriptionPayloadData,
-      })
-    : await prisma.subscription.create({
         data: {
-          userId,
-          ...subscriptionPayloadData,
+          isActive: false,
+          isExpired: true,
         },
       });
+    }
+
+    return tx.subscription.create({
+      data: subscriptionPayloadData,
+    });
+  });
+  console.log('🚀 ~ manualSubscriptionUpdate ~ result:', result);
 
   return result;
 };

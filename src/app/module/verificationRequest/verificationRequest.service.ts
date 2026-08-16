@@ -2,6 +2,7 @@
 import httpStatus from 'http-status';
 import prisma from '@app/shared/prisma.js';
 import {
+  VERIFICATION_DOCUMENT_TYPE,
   VERIFICATION_STATUS,
   type Prisma,
 } from '../../../../generated/prisma/index.js';
@@ -9,19 +10,56 @@ import AppError from '@app/error/AppError.js';
 import pickQuery from '@app/utils/pickQuery.js';
 import { paginationHelper } from '@app/helpers/pagination.helpers.js';
 import { notificationQueue } from '@app/redis/index.js';
+import _ from 'lodash';
 
 //Create Function
 const createVerificationRequest = async (
   payload: Prisma.VerificationRequestCreateInput,
 ) => {
   // @ts-ignore
-  const { images, ...data } = payload;
+  const { palliativeCare, drivingLicense, businessProfile, document, ...data } =
+    payload;
+
+  const images: { url: string; type: VERIFICATION_DOCUMENT_TYPE }[] = [];
+  if (palliativeCare && palliativeCare.length > 0) {
+    palliativeCare.forEach((image: any) => {
+      images.push({
+        url: image,
+        type: VERIFICATION_DOCUMENT_TYPE.palliativeCare,
+      });
+    });
+  }
+  if (drivingLicense && drivingLicense.length > 0) {
+    drivingLicense.forEach((image: any) => {
+      images.push({
+        url: image,
+        type: VERIFICATION_DOCUMENT_TYPE.drivingLicense,
+      });
+    });
+  }
+  if (businessProfile && businessProfile.length > 0) {
+    businessProfile.forEach((image: any) => {
+      images.push({
+        url: image,
+        type: VERIFICATION_DOCUMENT_TYPE.businessProfile,
+      });
+    });
+  }
+  if (document && document.length > 0) {
+    document.forEach((image: any) => {
+      images.push({
+        url: image,
+        type: VERIFICATION_DOCUMENT_TYPE.document,
+      });
+    });
+  }
+
   const result = await prisma.verificationRequest.create({
     data: {
       ...data,
       documents: {
         createMany: {
-          data: images?.map((url: string) => ({ url })),
+          data: images?.map(image => ({ url: image.url, type: image.type })),
         },
       },
     },
@@ -55,7 +93,7 @@ const createVerificationRequest = async (
         verificationRequestId: result.id,
       },
     };
-    await notificationQueue.add('new_notification', adminNotification);
+    notificationQueue.add('new_notification', adminNotification);
   }
 
   return result;
@@ -185,6 +223,15 @@ const updateVerificationRequest = async (
       id,
     },
     data: payload,
+    select: {
+      reason: true,
+      user: {
+        select: {
+          id: true,
+          fcmToken: true,
+        },
+      },
+    },
   });
 
   if (!result)
@@ -192,7 +239,16 @@ const updateVerificationRequest = async (
       httpStatus.BAD_REQUEST,
       'Failed to update VerificationRequest',
     );
-
+  if (payload?.status === VERIFICATION_STATUS.rejected) {
+    const notification = {
+      data: {
+        receiverId: result?.user?.id as string,
+        message: 'Verification Rejected',
+        description: `Unfortunately, your service provider verification has been rejected. Reason: ${result?.reason}`,
+      },
+    };
+    notificationQueue.add('new_notification', notification);
+  }
   return result;
 };
 
@@ -210,7 +266,12 @@ const approveVerificationRequest = async (id: string) => {
       },
     },
     include: {
-      user: true,
+      user: {
+        select: {
+          fcmToken: true,
+          id: true,
+        },
+      },
     },
   });
 
@@ -219,6 +280,18 @@ const approveVerificationRequest = async (id: string) => {
       httpStatus.BAD_REQUEST,
       'Failed to update VerificationRequest',
     );
+
+  if (result?.user) {
+    const notification = {
+      data: {
+        receiverId: result?.user?.id as string,
+        message: 'Your verification has been approved!',
+        description:
+          'Congratulations! Your service provider account has been successfully verified. You can now start providing your services.',
+      },
+    };
+    notificationQueue.add('new_notification', notification);
+  }
 
   return result;
 };

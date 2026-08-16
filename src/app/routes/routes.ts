@@ -24,10 +24,20 @@ import { clientReviewRoutes } from '@app/module/clientReview/clientReview.route.
 import { packagesRoutes } from '@app/module/packages/packages.route.js';
 import { subscriptionsRoutes } from '@app/module/subscriptions/subscriptions.route.js';
 import { agoraRoutes } from '@app/module/agora/agora.route.js';
+import { subCategoriesRoutes } from '@app/module/subCategories/subCategories.route.js';
+import { supportMessageRoutes } from '@app/module/supportMessage/supportMessage.route.js';
 
 const router: Router = Router();
 
 const moduleRoutes = [
+  {
+    path: '/support-message',
+    route: supportMessageRoutes,
+  },
+  {
+    path: '/subcategories',
+    route: subCategoriesRoutes,
+  },
   {
     path: '/agora',
     route: agoraRoutes,

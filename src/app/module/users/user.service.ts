@@ -225,6 +225,11 @@ const getById = async (id: string) => {
               category: true,
             },
           },
+        providerSubcategories:{
+          select:{
+            subcategory:true
+          }
+        },
           experience: true,
         },
       },
@@ -269,7 +274,7 @@ const update = async (id: string, payload: Prisma.UserUpdateInput) => {
       'User update failed: ' + error.message,
     );
   }
-};
+};4
 
 const serviceProfileInfo = async (userId: string, payload: any) => {
   const {
@@ -284,6 +289,7 @@ const serviceProfileInfo = async (userId: string, payload: any) => {
     qualifiedCarer,
     coverImage,
     perHourPrice,
+    providerSubcategories,
 
     ...rest
   } = payload;
@@ -356,6 +362,16 @@ const serviceProfileInfo = async (userId: string, payload: any) => {
     }
 
     // 3️⃣ othersRequiredTasks replace
+    if (providerSubcategories?.length) {
+      await tx.providerSubcategories.deleteMany({ where: { userId } });
+
+      await tx.providerSubcategories.createMany({
+        data: providerSubcategories.map((subcategoryId: string) => ({
+          userId,
+          subcategoryId,
+        })),
+      });
+    }
     if (othersRequiredTasks?.length) {
       await tx.othersRequiredTasks.deleteMany({ where: { userId } });
 
@@ -376,6 +392,9 @@ const serviceProfileInfo = async (userId: string, payload: any) => {
 
         specialistsIn: {
           include: { category: true },
+        },
+        providerSubcategories: {
+          include: { subcategory: true },
         },
 
         othersRequiredTasks: {

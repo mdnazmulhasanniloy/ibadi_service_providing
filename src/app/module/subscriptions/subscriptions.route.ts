@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { subscriptionsController } from './subscriptions.controller.js';
 import auth from '@app/middleware/auth.js';
-import { Role, USER_ROLE } from '../users/user.constants.js';
+import { USER_ROLE } from '../users/user.constants.js';
 
 const router: Router = Router();
 

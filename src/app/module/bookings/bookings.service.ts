@@ -55,7 +55,7 @@ const createBookings = async (payload: any) => {
         bookingId: booking.id,
       },
     };
-    await notificationQueue.add('new_notification', userNotification);
+    notificationQueue.add('new_notification', userNotification);
   }
 
   return booking;
@@ -721,7 +721,10 @@ const getProviderMonthlyAnalytics = async (
 ) => {
   const monthPattern = /^\d{4}-(0[1-9]|1[0-2])$/;
   if (month && !monthPattern.test(month)) {
-    throw new AppError(httpStatus.BAD_REQUEST, 'month must be in YYYY-MM format');
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      'month must be in YYYY-MM format',
+    );
   }
 
   const selectedMonth = month || moment().format('YYYY-MM');
@@ -831,18 +834,25 @@ const getProviderMonthlyAnalytics = async (
         ? Number((totalBookingValue / acceptedBookings.length).toFixed(2))
         : 0,
       completionRate: acceptedBookings.length
-        ? Number(((completedBookings / acceptedBookings.length) * 100).toFixed(2))
+        ? Number(
+            ((completedBookings / acceptedBookings.length) * 100).toFixed(2),
+          )
         : 0,
     },
     bookingTypeBreakdown: {
-      oneTime: bookings.filter(booking => booking.bookingType === 'one_time').length,
-      weekly: bookings.filter(booking => booking.bookingType === 'weekly').length,
+      oneTime: bookings.filter(booking => booking.bookingType === 'one_time')
+        .length,
+      weekly: bookings.filter(booking => booking.bookingType === 'weekly')
+        .length,
     },
     comparisonWithPreviousMonth: {
       totalBookingRequests: previousBookings.length,
       totalAcceptedBookings: previousAccepted,
       acceptanceRate: previousAcceptanceRate,
-      requestChangePercent: percentageChange(totalRequests, previousBookings.length),
+      requestChangePercent: percentageChange(
+        totalRequests,
+        previousBookings.length,
+      ),
       acceptedChangePercent: percentageChange(
         acceptedBookings.length,
         previousAccepted,

@@ -34,7 +34,7 @@ export const isValidFcmToken = async (token: string) => {
       },
     });
 
-    console.log(notify);
+     
     return true;  
   } catch (err: any) {
     console.log('🚀 ~ isValidFcmToken ~ err:', err);

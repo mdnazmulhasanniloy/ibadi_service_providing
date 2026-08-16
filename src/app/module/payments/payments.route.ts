@@ -11,10 +11,11 @@ router.post(
   paymentsController.createPayment,
 );
 
-router.post(
-  '/revenuecat/webhooks',
-  paymentsController.revenueCatWebHook,
-);
+// router.post(
+//   '/revenuecat/webhooks',
+//   paymentsController.revenueCatWebHook,
+// );
+
 router.get('/confirm-payment', paymentsController.confirmPayment);
 router.get(
   '/auto-payment',

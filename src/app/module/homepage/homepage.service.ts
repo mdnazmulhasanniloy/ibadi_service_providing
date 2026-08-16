@@ -323,7 +323,7 @@ const resolveFlexibleSlot = (
 
 const getAllHomepage = async (query: Record<string, any>) => {
   const { filters, pagination } = await pickQuery(query);
-
+console.log(query);
   const {
     searchTerm,
 
@@ -342,6 +342,7 @@ const getAllHomepage = async (query: Record<string, any>) => {
     categoryIds,
     experienceOptionId,
     otherTaskIds,
+    subcategoryIds,
     minPrice,
     maxPrice,
     qualifiedCarer,
@@ -563,6 +564,14 @@ const getAllHomepage = async (query: Record<string, any>) => {
       some: { othersTaskId: { in: taskIds } },
     };
   }
+  if (subcategoryIds) {
+    const subIds  = (subcategoryIds as string).split(',').map(id => id.trim());
+  console.log(subIds);
+  
+    where.providerSubcategories = {
+      some: { subcategoryId: { in: subIds } },
+    };
+  }
 
   // ── price range ──
   if (minPrice || maxPrice) {
@@ -647,6 +656,7 @@ const getAllHomepage = async (query: Record<string, any>) => {
           experience: true,
           specialistsIn: { include: { category: true } },
           othersRequiredTasks: { include: { othersTask: true } },
+          providerSubcategories:{include:{subcategory:true}},
           images: true,
         },
         skip,

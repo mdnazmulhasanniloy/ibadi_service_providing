@@ -87,9 +87,9 @@ const completeBookings = catchAsync(async (req: Request, res: Response) => {
     status: BookingStatus.complete,
   });
 
-  const io = global?.socketio
-  if(io){
-    io.emit("bookingComplete::" + result?.userId?.toString(), result)
+  const io = global?.socketio;
+  if (io) {
+    io.emit('bookingComplete::' + result?.userId?.toString(), result);
   }
   sendResponse(res, {
     statusCode: httpStatus.OK,
@@ -112,7 +112,7 @@ const acceptBookings = catchAsync(async (req: Request, res: Response) => {
         bookingId: result.id,
       },
     };
-    await notificationQueue.add('new_notification', userNotification);
+    notificationQueue.add('new_notification', userNotification);
   }
 
   sendResponse(res, {
@@ -136,7 +136,7 @@ const rejectBookings = catchAsync(async (req: Request, res: Response) => {
         bookingId: result.id,
       },
     };
-    await notificationQueue.add('new_notification', userNotification);
+    notificationQueue.add('new_notification', userNotification);
   }
 
   sendResponse(res, {
@@ -162,7 +162,7 @@ const canceledBookings = catchAsync(async (req: Request, res: Response) => {
         bookingId: result.id,
       },
     };
-    await notificationQueue.add('new_notification', userNotification);
+    notificationQueue.add('new_notification', userNotification);
   }
 
   sendResponse(res, {

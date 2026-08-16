@@ -16,24 +16,25 @@ const notificationWorker = new Worker(
       // 👉 to do:
       // - WebSocket emit
       // - Push notification (FCM)
-      if (payload.receiverId) {
+      if (payload?.data?.receiverId) {
         const user = await prisma.user.findUnique({
           where: {
-            id: payload.receiverId,
+            id: payload?.data?.receiverId,
           },
           select: {
             fcmToken: true,
           },
         });
+        console.log('🚀 ~ user:', user);
         if (user?.fcmToken) {
           await firebaseAdmin.messaging().send({
-            token: payload.fcmToken,
+            token: user.fcmToken,
             notification: {
-              title: payload.message,
-              body: payload.description,
+              title: payload?.data?.message,
+              body: payload?.data.description,
             },
             data: {
-              ...payload,
+              ...payload?.data,
             },
           });
         }

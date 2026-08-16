@@ -33,15 +33,15 @@ services:
   #   depends_on:
   #     - app
 
-  # redis:
-  #   image: redis:7.2-alpine
-  #   container_name: iumi_app_redis
-  #   restart: always
-  #   ports:
-  #     - '5050:6379'
-  #   volumes:
-  #     - redis-data:/data
-  #   command: ['redis-server', '--appendonly', 'yes']
+  redis:
+    image: redis:7.2-alpine
+    container_name: iumi_app_redis
+    restart: always
+    ports:
+      - '5050:6379'
+    volumes:
+      - redis-data:/data
+    command: ['redis-server', '--appendonly', 'yes']
 
   # mongo:
   #   image: mongo:7.0

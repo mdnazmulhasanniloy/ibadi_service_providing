@@ -36,6 +36,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const login = async (payload: ILogin, req: Request) => {
+  console.log('🚀 ~ login ~ payload:', payload);
   payload.email = payload?.email?.trim().toLowerCase();
 
   const user = await prisma.user.findFirst({
@@ -111,7 +112,7 @@ const login = async (payload: ILogin, req: Request) => {
     config.jwt_refresh_expires_in as string,
   );
 
-  await prisma.user.update({
+  const newUser = await prisma.user.update({
     where: { id: user.id },
     data: {
       fcmToken: payload?.fcmToken ?? null,
@@ -130,7 +131,7 @@ const login = async (payload: ILogin, req: Request) => {
   });
 
   return {
-    user,
+    user: newUser,
     accessToken,
     refreshToken,
   };
@@ -382,7 +383,7 @@ const googleLogin = async (payload: IGoogleLogin, req: Request) => {
         },
       };
 
-      await notificationQueue.add('new_notification', userNotification);
+      notificationQueue.add('new_notification', userNotification);
     }
 
     const jwtPayload = {
