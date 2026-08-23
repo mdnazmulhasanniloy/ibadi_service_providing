@@ -115,7 +115,6 @@ model VerificationRequest {
 
   documents Documents[]
   notifications Notification[]
-
   user User @relation(fields: [userId], references: [id])
 }
 
@@ -176,6 +175,8 @@ model Address {
 
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+
+  bookings Bookings[] 
 }
 
 model Favorites {
@@ -220,16 +221,12 @@ model workSchedule {
 }
 
 
-model serviceProviderInfo {
-      
+model serviceProviderInfo { 
   userId    String   @map("_id") @db.ObjectId 
   stripeAccountId String?
   palliativeCare String? 
   bio String?
-  coverImage String?
-  drivingLicense String?
-  businessProfiles String?
-  documents String?
+  coverImage String? 
   perHourPrice Float? @default(0)
   experienceOptionId String? @db.ObjectId 
   qualifiedCarer String?
@@ -383,6 +380,7 @@ model Bookings {
 
   user              User               @relation("UserBookings",    fields: [userId],    references: [id])
   provider          User               @relation("ProviderBookings",fields: [providerId],references: [id])
+  address           Address?            @relation(fields: [addressId],references: [id])
   bookingDays       BookingDays[]
   notifications     Notification[]
   payments          Payments[]

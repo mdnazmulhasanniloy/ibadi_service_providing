@@ -19,6 +19,7 @@ import type {
   RevenueCatWebhookPayload,
 } from './payments.interface.js';
 import generateCryptoString from '@app/utils/generateCryptoString.js';
+import { notificationQueue } from '@app/redis/index.js';
 
 interface MonthlyData {
   month: string;
@@ -238,8 +239,6 @@ const confirmPayment = async (payload: {
       receipt_url: charge.receipt_url,
     };
 
-    console.log('Charge Details:', chargeDetails);
-
     await prisma.$transaction(async tx => {
       // =========================
       // ONE TIME BOOKING
@@ -404,6 +403,34 @@ const confirmPayment = async (payload: {
         }
 
         previousBookingId = newBooking.id;
+      }
+    });
+
+    // Payment is already committed at this point. Notification delivery must not
+    // roll back/refund a successful charge if Redis or FCM is temporarily down.
+    const notificationJobs = [
+      notificationQueue.add('new_notification', {
+        data: {
+          receiverId: paymentRecord.userId,
+          message: 'Payment Successful',
+          description: `Your payment of $${paymentRecord.amount.toFixed(2)} was successful.`,
+          bookingId: paymentRecord.bookingId,
+        },
+      }),
+      notificationQueue.add('new_notification', {
+        data: {
+          receiverId: paymentRecord.providerId,
+          message: 'Booking Payment Received',
+          description: 'A customer has completed payment for a booking.',
+          bookingId: paymentRecord.bookingId,
+        },
+      }),
+    ];
+
+    const notificationResults = await Promise.allSettled(notificationJobs);
+    notificationResults.forEach(result => {
+      if (result.status === 'rejected') {
+        console.error('Failed to enqueue payment notification:', result.reason);
       }
     });
 

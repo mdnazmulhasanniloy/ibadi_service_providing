@@ -3,7 +3,7 @@ import { uploadToS3 } from '@app/utils/s3.js';
 import type { Request, Response } from 'express';
 import httpStatus from 'http-status';
 import { userService } from './user.service.js';
-import sendResponse from '@app/utils/sendResponse.js'; 
+import sendResponse from '@app/utils/sendResponse.js';
 import { otpServices } from '../otp/otp.service.js';
 
 const createUser = catchAsync(async (req: Request, res: Response) => {
@@ -76,8 +76,8 @@ const updateMyProfile = catchAsync(async (req: Request, res: Response) => {
       file: req.file,
       fileName: `images/user/profile/${Math.floor(100000 + Math.random() * 900000)}`,
     });
-  }  
-  
+  }
+
   const result = await userService.update(req?.user?.userId, req.body);
   sendResponse(res, {
     statusCode: httpStatus.OK,
@@ -87,7 +87,7 @@ const updateMyProfile = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
-const serviceProfileInfo = catchAsync(async (req: Request, res: Response) => { 
+const serviceProfileInfo = catchAsync(async (req: Request, res: Response) => {
   const result = await userService.serviceProfileInfo(
     req?.user?.userId,
     req.body,
@@ -96,6 +96,15 @@ const serviceProfileInfo = catchAsync(async (req: Request, res: Response) => {
     statusCode: httpStatus.OK,
     success: true,
     message: 'profile updated successfully',
+    data: result,
+  });
+});
+const getMyDocuments = catchAsync(async (req: Request, res: Response) => {
+  const result = await userService.getDocuments(req?.user?.userId);
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Document get successfully',
     data: result,
   });
 });
@@ -129,5 +138,6 @@ export const userController = {
   updateMyProfile,
   deleteUser,
   deleteMYAccount,
-  serviceProfileInfo, 
+  serviceProfileInfo,
+  getMyDocuments,
 };

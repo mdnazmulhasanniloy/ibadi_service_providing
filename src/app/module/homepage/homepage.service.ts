@@ -580,27 +580,6 @@ console.log(query);
     if (maxPrice) where.perHourPrice.lte = Number(maxPrice);
   }
 
-  // ── qualified carer toggle ──
-  if (qualifiedCarer === 'true') {
-    // qualifiedCarer is stored as a string in the schema
-    where.qualifiedCarer = { not: null };
-  }
-
-  // ── palliative care toggle ──
-  if (palliativeCare === 'true') {
-    where.palliativeCare = { not: null };
-  }
-
-  // ── driving licence toggle ──
-  if (drivingLicense === 'true') {
-    where.drivingLicense = { not: null };
-  }
-
-  // ── business profiles toggle ──
-  if (businessProfiles === 'true') {
-    where.businessProfiles = { not: null };
-  }
-
   // ─────────────────────────────────────────
   // STEP 4 – pagination & sorting
   // ─────────────────────────────────────────

@@ -32,6 +32,7 @@ const createBookings = async (payload: any) => {
       startDate: moment(payload.startDate).toDate(),
       totalHours: payload.totalHours,
       bookingType: payload.bookingType,
+      addressId: payload.addressId,
 
       bookingDays: {
         create: payload.bookingDays.map((item: any) => ({
@@ -55,7 +56,7 @@ const createBookings = async (payload: any) => {
         bookingId: booking.id,
       },
     };
-    notificationQueue.add('new_notification', userNotification);
+    await notificationQueue.add('new_notification', userNotification);
   }
 
   return booking;
@@ -549,6 +550,7 @@ const getBookingsById = async (id: string, includeData: string) => {
             email: true,
             profile: true,
             phoneNumber: true,
+            address: true,
 
             serviceProviderInfo: {
               select: {

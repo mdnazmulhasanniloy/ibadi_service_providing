@@ -6,7 +6,11 @@ import AppError from '@app/error/AppError.js';
 import pickQuery from '@app/utils/pickQuery.js';
 import { paginationHelper } from '@app/helpers/pagination.helpers.js';
 
-import { Role, type Prisma } from '../../../../generated/prisma/index.js';
+import {
+  Role,
+  VERIFICATION_STATUS,
+  type Prisma,
+} from '../../../../generated/prisma/index.js';
 
 const create = async (payload: Prisma.UserCreateInput) => {
   try {
@@ -225,11 +229,11 @@ const getById = async (id: string) => {
               category: true,
             },
           },
-        providerSubcategories:{
-          select:{
-            subcategory:true
-          }
-        },
+          providerSubcategories: {
+            select: {
+              subcategory: true,
+            },
+          },
           experience: true,
         },
       },
@@ -274,7 +278,33 @@ const update = async (id: string, payload: Prisma.UserUpdateInput) => {
       'User update failed: ' + error.message,
     );
   }
-};4
+};
+
+const getDocuments = async (id: string) => {
+  const request = await prisma.verificationRequest.findFirst({
+    where: {
+      userId: id,
+      status: VERIFICATION_STATUS.verified,
+    },
+    include: {
+      documents: true,
+    },
+  });
+  // console.log('🚀 ~ getDocuments ~ request:', request);
+
+  // if (!request)
+  //   throw new AppError(
+  //     httpStatus.NOT_FOUND,
+  //     'No verified request found with this id',
+  //   );
+  // const documents = await prisma.documents.findMany({
+  //   where: {
+  //     requestId: request.id,
+  //   },
+  // });
+
+  return request?.documents ?? [];
+};
 
 const serviceProfileInfo = async (userId: string, payload: any) => {
   const {
@@ -307,12 +337,13 @@ const serviceProfileInfo = async (userId: string, payload: any) => {
     ...rest,
     ...((perHourPrice && { perHourPrice: Number(perHourPrice) }) || {}),
 
-    palliativeCare: takeFirst(palliativeCare),
-    drivingLicense: takeFirst(drivingLicense),
-    businessProfiles: takeFirst(businessProfiles),
-    qualifiedCarer: takeFirst(qualifiedCarer),
-    coverImage: takeFirst(coverImage),
+    // palliativeCare: takeFirst(palliativeCare),
+    // drivingLicense: takeFirst(drivingLicense),
+    // businessProfiles: takeFirst(businessProfiles),
+    // qualifiedCarer: takeFirst(qualifiedCarer),
   };
+
+  // const coverImage = takeFirst(coverImage);
 
   const result = await prisma.$transaction(async tx => {
     // 1️⃣ Upsert Service Provider Info
@@ -322,7 +353,7 @@ const serviceProfileInfo = async (userId: string, payload: any) => {
       create: {
         userId,
         ...data,
-
+        coverImage: takeFirst(coverImage) ? takeFirst(coverImage) : undefined,
         experience: experienceId
           ? { connect: { id: experienceId } }
           : undefined,
@@ -336,7 +367,7 @@ const serviceProfileInfo = async (userId: string, payload: any) => {
 
       update: {
         ...data,
-
+        coverImage: takeFirst(coverImage) ? takeFirst(coverImage) : undefined,
         experience: experienceId
           ? { connect: { id: experienceId } }
           : undefined,
@@ -372,6 +403,7 @@ const serviceProfileInfo = async (userId: string, payload: any) => {
         })),
       });
     }
+
     if (othersRequiredTasks?.length) {
       await tx.othersRequiredTasks.deleteMany({ where: { userId } });
 
@@ -423,4 +455,5 @@ export const userService = {
   getById,
   deleteUser,
   serviceProfileInfo,
+  getDocuments,
 };

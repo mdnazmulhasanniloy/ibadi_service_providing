@@ -361,11 +361,6 @@ const googleLogin = async (payload: IGoogleLogin, req: Request) => {
   const os = result.os.name || 'Unknown';
   const device = result.device.model || 'Desktop';
 
-  const isIOS =
-    os.toLowerCase().includes('ios') ||
-    device.toLowerCase().includes('iphone') ||
-    device.toLowerCase().includes('ipad');
-
   // LOGIN
   if (existingUser) {
     if (existingUser.isDeleted)
@@ -374,7 +369,22 @@ const googleLogin = async (payload: IGoogleLogin, req: Request) => {
     if (existingUser.status !== status.active)
       throw new AppError(httpStatus.FORBIDDEN, 'Account blocked');
 
-    if (!isIOS && payload.fcmToken) {
+    let loggedInUser = existingUser;
+
+    if (payload.fcmToken) {
+      if (!(await isValidFcmToken(payload.fcmToken))) {
+        throw new AppError(httpStatus.BAD_REQUEST, 'FCM Token is invalid');
+      }
+
+      loggedInUser = await prisma.user.update({
+        where: { id: existingUser.id },
+        data: { fcmToken: payload.fcmToken },
+        include: {
+          verification: true,
+          deviceHistory: true,
+        },
+      });
+
       const userNotification = {
         data: {
           receiverId: existingUser.id as string,
@@ -383,7 +393,7 @@ const googleLogin = async (payload: IGoogleLogin, req: Request) => {
         },
       };
 
-      notificationQueue.add('new_notification', userNotification);
+      await notificationQueue.add('new_notification', userNotification);
     }
 
     const jwtPayload = {
@@ -392,7 +402,7 @@ const googleLogin = async (payload: IGoogleLogin, req: Request) => {
     };
 
     return {
-      user: existingUser,
+      user: loggedInUser,
       accessToken: createToken(
         jwtPayload,
         config.jwt_access_secret!,
@@ -416,6 +426,7 @@ const googleLogin = async (payload: IGoogleLogin, req: Request) => {
       phoneNumber: decodedToken.phone_number || null,
       role: payload.role || Role.user,
       loginWth: Login_With.google,
+      fcmToken: payload.fcmToken ?? null,
 
       verification: {
         create: {

@@ -13,6 +13,91 @@ import { notificationQueue } from '@app/redis/index.js';
 import _ from 'lodash';
 
 //Create Function
+// const createVerificationRequest = async (
+//   payload: Prisma.VerificationRequestCreateInput,
+// ) => {
+//   // @ts-ignore
+//   const { palliativeCare, drivingLicense, businessProfile, document, ...data } =
+//     payload;
+
+//   const images: { url: string; type: VERIFICATION_DOCUMENT_TYPE }[] = [];
+//   if (palliativeCare && palliativeCare.length > 0) {
+//     palliativeCare.forEach((image: any) => {
+//       images.push({
+//         url: image,
+//         type: VERIFICATION_DOCUMENT_TYPE.palliativeCare,
+//       });
+//     });
+//   }
+//   if (drivingLicense && drivingLicense.length > 0) {
+//     drivingLicense.forEach((image: any) => {
+//       images.push({
+//         url: image,
+//         type: VERIFICATION_DOCUMENT_TYPE.drivingLicense,
+//       });
+//     });
+//   }
+//   if (businessProfile && businessProfile.length > 0) {
+//     businessProfile.forEach((image: any) => {
+//       images.push({
+//         url: image,
+//         type: VERIFICATION_DOCUMENT_TYPE.businessProfile,
+//       });
+//     });
+//   }
+//   if (document && document.length > 0) {
+//     document.forEach((image: any) => {
+//       images.push({
+//         url: image,
+//         type: VERIFICATION_DOCUMENT_TYPE.document,
+//       });
+//     });
+//   }
+
+//   const result = await prisma.verificationRequest.create({
+//     data: {
+//       ...data,
+//       documents: {
+//         createMany: {
+//           data: images?.map(image => ({ url: image.url, type: image.type })),
+//         },
+//       },
+//     },
+//     include: {
+//       documents: true,
+//     },
+//   });
+
+//   if (!result) {
+//     throw new AppError(
+//       httpStatus.BAD_REQUEST,
+//       'Failed to create verificationRequest',
+//     );
+//   }
+
+//   const admin = await prisma.user.findFirst({
+//     where: {
+//       role: 'admin',
+//     },
+//     select: {
+//       id: true,
+//     },
+//   });
+//   if (admin) {
+//     const adminNotification = {
+//       data: {
+//         receiverId: admin.id as string,
+//         message: 'New Verification Request',
+//         description:
+//           'A user has submitted a new verification request. Please review and take necessary action.',
+//         verificationRequestId: result.id,
+//       },
+//     };
+//     notificationQueue.add('new_notification', adminNotification);
+//   }
+
+//   return result;
+// };
 const createVerificationRequest = async (
   payload: Prisma.VerificationRequestCreateInput,
 ) => {
@@ -20,33 +105,40 @@ const createVerificationRequest = async (
   const { palliativeCare, drivingLicense, businessProfile, document, ...data } =
     payload;
 
-  const images: { url: string; type: VERIFICATION_DOCUMENT_TYPE }[] = [];
-  if (palliativeCare && palliativeCare.length > 0) {
-    palliativeCare.forEach((image: any) => {
+  const images: {
+    url: string;
+    type: VERIFICATION_DOCUMENT_TYPE;
+  }[] = [];
+
+  if (palliativeCare?.length) {
+    palliativeCare.forEach((image: string) => {
       images.push({
         url: image,
         type: VERIFICATION_DOCUMENT_TYPE.palliativeCare,
       });
     });
   }
-  if (drivingLicense && drivingLicense.length > 0) {
-    drivingLicense.forEach((image: any) => {
+
+  if (drivingLicense?.length) {
+    drivingLicense.forEach((image: string) => {
       images.push({
         url: image,
         type: VERIFICATION_DOCUMENT_TYPE.drivingLicense,
       });
     });
   }
-  if (businessProfile && businessProfile.length > 0) {
-    businessProfile.forEach((image: any) => {
+
+  if (businessProfile?.length) {
+    businessProfile.forEach((image: string) => {
       images.push({
         url: image,
         type: VERIFICATION_DOCUMENT_TYPE.businessProfile,
       });
     });
   }
-  if (document && document.length > 0) {
-    document.forEach((image: any) => {
+
+  if (document?.length) {
+    document.forEach((image: string) => {
       images.push({
         url: image,
         type: VERIFICATION_DOCUMENT_TYPE.document,
@@ -54,46 +146,103 @@ const createVerificationRequest = async (
     });
   }
 
-  const result = await prisma.verificationRequest.create({
-    data: {
-      ...data,
-      documents: {
-        createMany: {
-          data: images?.map(image => ({ url: image.url, type: image.type })),
-        },
-      },
+  const userId = (data as any).userId;
+
+  if (!userId) {
+    throw new AppError(httpStatus.BAD_REQUEST, 'User ID is required');
+  }
+
+  const existingRequest = await prisma.verificationRequest.findFirst({
+    where: {
+      userId,
     },
     include: {
       documents: true,
     },
   });
 
+  let result;
+  let isNewRequest = false;
+
+  if (existingRequest) {
+    result = await prisma.$transaction(async tx => {
+      await tx.documents.deleteMany({
+        where: {
+          requestId: existingRequest.id,
+        },
+      });
+
+      return tx.verificationRequest.update({
+        where: {
+          id: existingRequest.id,
+        },
+        data: {
+          ...data,
+          status: VERIFICATION_STATUS.pending,
+
+          documents: {
+            create: images.map(image => ({
+              url: image.url,
+              type: image.type,
+            })),
+          },
+        },
+        include: {
+          documents: true,
+        },
+      });
+    });
+  } else {
+    // New verification request
+    isNewRequest = true;
+
+    result = await prisma.verificationRequest.create({
+      data: {
+        ...data,
+
+        documents: {
+          create: images.map(image => ({
+            url: image.url,
+            type: image.type,
+          })),
+        },
+      },
+      include: {
+        documents: true,
+      },
+    });
+  }
+
   if (!result) {
     throw new AppError(
       httpStatus.BAD_REQUEST,
-      'Failed to create verificationRequest',
+      existingRequest
+        ? 'Failed to update verification request'
+        : 'Failed to create verification request',
     );
   }
 
-  const admin = await prisma.user.findFirst({
-    where: {
-      role: 'admin',
-    },
-    select: {
-      id: true,
-    },
-  });
-  if (admin) {
-    const adminNotification = {
-      data: {
-        receiverId: admin.id as string,
-        message: 'New Verification Request',
-        description:
-          'A user has submitted a new verification request. Please review and take necessary action.',
-        verificationRequestId: result.id,
+  if (isNewRequest) {
+    const admin = await prisma.user.findFirst({
+      where: {
+        role: 'admin',
       },
-    };
-    notificationQueue.add('new_notification', adminNotification);
+      select: {
+        id: true,
+      },
+    });
+
+    if (admin) {
+      await notificationQueue.add('new_notification', {
+        data: {
+          receiverId: admin.id,
+          message: 'New Verification Request',
+          description:
+            'A user has submitted a new verification request. Please review and take necessary action.',
+          verificationRequestId: result.id,
+        },
+      });
+    }
   }
 
   return result;
@@ -247,7 +396,7 @@ const updateVerificationRequest = async (
         description: `Unfortunately, your service provider verification has been rejected. Reason: ${result?.reason}`,
       },
     };
-    notificationQueue.add('new_notification', notification);
+    await notificationQueue.add('new_notification', notification);
   }
   return result;
 };
@@ -290,7 +439,7 @@ const approveVerificationRequest = async (id: string) => {
           'Congratulations! Your service provider account has been successfully verified. You can now start providing your services.',
       },
     };
-    notificationQueue.add('new_notification', notification);
+    await notificationQueue.add('new_notification', notification);
   }
 
   return result;

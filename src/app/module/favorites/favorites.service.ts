@@ -48,6 +48,7 @@ const getAllFavorites = async (query: Record<string, any>) => {
   const { filters, pagination } = await pickQuery(query);
   const { searchTerm, include: includeData, ...filtersData } = filters;
   const include: { [key: string]: boolean | Object } = {};
+  console.log(includeData, 'includeData');
 
   const where: Prisma.FavoritesWhereInput = {};
 
@@ -67,37 +68,98 @@ const getAllFavorites = async (query: Record<string, any>) => {
       [key]: { equals: value },
     }));
   }
-
   if (includeData) {
     const fields = includeData.split(',');
 
     fields.forEach((field: string) => {
       const trimmedField = field.trim();
 
+      if (!trimmedField) return;
+
       if (trimmedField === 'serviceProvider') {
-        include['serviceProvider'] = {
+        include.serviceProvider = {
           include: {
             user: {
               select: {
-                bio: true,
+                id: true,
                 name: true,
                 email: true,
+                bio: true,
                 profile: true,
-                isVerified: true,
                 phoneNumber: true,
+                isVerified: true,
+                avgRating: true,
+                totalReview: true,
+                status: true,
+              },
+            },
+
+            experience: true,
+            images: true,
+            specialistsIn: {
+              include: {
+                category: true,
+              },
+            },
+            providerSubcategories: {
+              include: {
+                subcategory: true,
+              },
+            },
+            othersRequiredTasks: {
+              include: {
+                othersTask: true,
               },
             },
           },
         };
-      } else if (trimmedField) {
+      } else if (trimmedField === 'user') {
+        include.user = {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            bio: true,
+            profile: true,
+            phoneNumber: true,
+            isVerified: true,
+          },
+        };
+      } else {
         include[trimmedField] = true;
       }
     });
-
-    fields.forEach((field: string) => {
-      if (field.trim()) include[field.trim()] = true;
-    });
   }
+  // if (includeData) {
+  //   const fields = includeData.split(',');
+
+  //   fields.forEach((field: string) => {
+  //     const trimmedField = field.trim();
+
+  //     if (trimmedField === 'serviceProvider') {
+  //       include[trimmedField] = {
+  //         include: {
+  //           user: {
+  //             include: {
+  //               bio: true,
+  //               name: true,
+  //               email: true,
+  //               profile: true,
+  //               isVerified: true,
+  //               phoneNumber: true,
+  //             },
+  //           },
+  //         },
+  //       };
+  //     } else if (trimmedField) {
+  //       include[trimmedField] = true;
+  //     }
+  //   });
+
+  //   fields.forEach((field: string) => {
+  //     if (field.trim()) include[field.trim()] = true;
+  //   });
+  // }
 
   // 📄 Pagination
   const { page, limit, skip, sort } =

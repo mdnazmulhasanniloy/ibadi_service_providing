@@ -8,7 +8,7 @@ const notificationWorker = new Worker(
   async job => {
     if (job.name === 'new_notification') {
       const payload = job.data;
-      const save = await prisma.notification.create(payload);
+      await prisma.notification.create(payload);
 
       console.log('🔔 Sending notification...');
       console.log(payload);
@@ -27,16 +27,36 @@ const notificationWorker = new Worker(
         });
         console.log('🚀 ~ user:', user);
         if (user?.fcmToken) {
-          await firebaseAdmin.messaging().send({
-            token: user.fcmToken,
-            notification: {
-              title: payload?.data?.message,
-              body: payload?.data.description,
-            },
-            data: {
-              ...payload?.data,
-            },
-          });
+          const fcmData = Object.fromEntries(
+            Object.entries(payload.data)
+              .filter(([, value]) => value !== null && value !== undefined)
+              .map(([key, value]) => [key, String(value)]),
+          );
+
+          try {
+            await firebaseAdmin.messaging().send({
+              token: user.fcmToken,
+              notification: {
+                title: String(payload.data.message),
+                body: String(payload.data.description ?? ''),
+              },
+              data: fcmData,
+            });
+          } catch (error: any) {
+            const invalidTokenCodes = [
+              'messaging/invalid-registration-token',
+              'messaging/registration-token-not-registered',
+            ];
+
+            if (invalidTokenCodes.includes(error?.code)) {
+              await prisma.user.update({
+                where: { id: payload.data.receiverId },
+                data: { fcmToken: null },
+              });
+            }
+
+            throw error;
+          }
         }
       }
 

@@ -1,6 +1,6 @@
 import catchAsync from '@app/utils/catchAsync.js';
 import { uploadToS3 } from '@app/utils/s3.js';
-import type{ NextFunction, Request, Response } from 'express'; 
+import type { NextFunction, Request, Response } from 'express';
 import _ from 'lodash';
 
 type UploadedFiles = {

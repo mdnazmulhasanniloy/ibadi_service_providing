@@ -112,7 +112,7 @@ const acceptBookings = catchAsync(async (req: Request, res: Response) => {
         bookingId: result.id,
       },
     };
-    notificationQueue.add('new_notification', userNotification);
+    await notificationQueue.add('new_notification', userNotification);
   }
 
   sendResponse(res, {
@@ -136,7 +136,7 @@ const rejectBookings = catchAsync(async (req: Request, res: Response) => {
         bookingId: result.id,
       },
     };
-    notificationQueue.add('new_notification', userNotification);
+    await notificationQueue.add('new_notification', userNotification);
   }
 
   sendResponse(res, {
@@ -162,7 +162,7 @@ const canceledBookings = catchAsync(async (req: Request, res: Response) => {
         bookingId: result.id,
       },
     };
-    notificationQueue.add('new_notification', userNotification);
+    await notificationQueue.add('new_notification', userNotification);
   }
 
   sendResponse(res, {

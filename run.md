@@ -25,7 +25,7 @@ Inside the project folder:
 ```sh
 docker-compose pull
 ```
-
+https://api.iumi.ro
 ---
 
 ## 4. Restart with the updated version

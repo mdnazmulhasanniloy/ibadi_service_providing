@@ -14,10 +14,6 @@ const userFiles: any[] = [
   { name: 'profile', maxCount: 1 },
   { name: 'coverImage', maxCount: 1 },
   { name: 'images', maxCount: 5 },
-  { name: 'palliativeCare', maxCount: 1 },
-  { name: 'drivingLicense', maxCount: 1 },
-  { name: 'businessProfiles', maxCount: 1 },
-  { name: 'qualifiedCarer', maxCount: 1 },
 ];
 
 router.post(
@@ -86,6 +82,13 @@ router.get(
     USER_ROLE.service_provider,
   ),
   userController.getMyProfile,
+);
+router.get(
+  '/my-documents',
+  auth( 
+    USER_ROLE.service_provider,
+  ),
+  userController.getMyDocuments,
 );
 
 router.get('/:id', userController.getUserById);
