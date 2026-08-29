@@ -178,7 +178,7 @@ const createVerificationRequest = async (
         },
         data: {
           ...data,
-          status: VERIFICATION_STATUS.pending,
+          // status: VERIFICATION_STATUS.pending,
 
           documents: {
             create: images.map(image => ({
