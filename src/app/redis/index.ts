@@ -37,7 +37,15 @@ const connectRedis = async () => {
 const messageQueue = new Queue('save_messages', { connection });
 const eventQueue = new Queue('event_notification', { connection });
 const notificationQueue = new Queue('general_notification', { connection });
-const bookingQueue = new Queue('booking_payments', { connection });
+const bookingQueue = new Queue('booking_payments', {
+  connection,
+  defaultJobOptions: {
+    attempts: 3,
+    backoff: { type: 'fixed', delay: 24 * 60 * 60 * 1000 },
+    removeOnComplete: true,
+    removeOnFail: false,
+  },
+});
 
 // ── Subscribe (io inject করা হবে server.ts থেকে) ─────────
 const initRedisSubscriptions = (io: Server) => {

@@ -5,6 +5,7 @@ import moment from 'moment';
 import httpStatus from 'http-status';
 import pickQuery from '@app/utils/pickQuery.js';
 import {
+  BOOKING_TYPE,
   BookingStatus,
   type Prisma,
 } from '../../../../generated/prisma/index.js';
@@ -28,7 +29,8 @@ const createBookings = async (payload: any) => {
       userId: payload.userId,
       providerId: payload.providerId,
       price: payload.price,
-      status: payload.status,
+      // status: payload.status,
+      status: BookingStatus.requested,
       startDate: moment(payload.startDate).toDate(),
       totalHours: payload.totalHours,
       bookingType: payload.bookingType,

@@ -15,8 +15,7 @@ import { resolveStripeCustomer } from '../bookings/bookings.utils.js';
 import { toFixed2 } from '../bookings/bookings.constants.js';
 import { months } from './payments.constants.js';
 import type {
-  RevenueCatEvent,
-  RevenueCatWebhookPayload,
+  RevenueCatEvent, 
 } from './payments.interface.js';
 import generateCryptoString from '@app/utils/generateCryptoString.js';
 import { notificationQueue } from '@app/redis/index.js';
@@ -318,7 +317,8 @@ const confirmPayment = async (payload: {
         return;
       }
 
-      let previousBookingId: string | null = null;
+      // Start from the paid booking so it points to the first generated week.
+      let previousBookingId: string = paymentRecord.booking.id;
 
       const TOTAL_WEEKS = 4;
 
@@ -345,6 +345,9 @@ const confirmPayment = async (payload: {
             bookingType: paymentRecord.booking.bookingType,
 
             nextBooking: null,
+
+            // It becomes active only after its renewal payment succeeds.
+            isActive: false,
 
             bookingDays: {
               create: paymentRecord.booking.bookingDays.map((day: any) => {
@@ -390,17 +393,15 @@ const confirmPayment = async (payload: {
         }
 
         // Link previous booking -> next booking
-        if (previousBookingId) {
-          await tx.bookings.update({
-            where: {
-              id: previousBookingId,
-            },
+        await tx.bookings.update({
+          where: {
+            id: previousBookingId,
+          },
 
-            data: {
-              nextBooking: newBooking.id,
-            },
-          });
-        }
+          data: {
+            nextBooking: newBooking.id,
+          },
+        });
 
         previousBookingId = newBooking.id;
       }
@@ -1302,7 +1303,6 @@ const adminDashboardChart = async (query: Record<string, any>) => {
   };
 };
 
-//@te-ignore
 export const paymentsService = {
   checkout,
   confirmPayment,

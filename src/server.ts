@@ -9,6 +9,7 @@ import '@app/workers/message.worker.js';
 import '@app/workers/booking.worker.js';
 import '@app/workers/notification.worker.js';
 import { expireEndedSubscriptionGracePeriods } from '@app/utils/subscriptionGraceTask.js';
+import { startWeeklyBookingTask } from '@app/utils/weeklyBookingTask.js';
 
 const socketServer = createServer(app);
 let server: Server;
@@ -37,9 +38,11 @@ const startHttpServer = () =>
         ),
       );
       defaultTask();
+      startWeeklyBookingTask();
       expireEndedSubscriptionGracePeriods().catch(error =>
         console.error('Subscription grace cleanup failed:', error),
       );
+      
       setInterval(
         () =>
           expireEndedSubscriptionGracePeriods().catch(error =>

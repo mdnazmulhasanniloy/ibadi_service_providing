@@ -9,10 +9,24 @@ import cors from 'cors';
 import helmet from 'helmet';
 import router from '@app/routes/routes.js';
 import notFound from '@app/middleware/notfound.js';
-import globalErrorHandler from '@app/middleware/globalErrorhandler.js';
-import generateCryptoString from '@app/utils/generateCryptoString.js';
+import globalErrorHandler from '@app/middleware/globalErrorhandler.js'; 
+import {
+  apiRateLimiter,
+  authRateLimiter,
+  paymentRateLimiter,
+} from '@app/middleware/rateLimiter.js';
 
 const app: Application = express();
+
+// The production deployment runs behind one reverse proxy/load balancer.
+// This makes req.ip use the real client address from X-Forwarded-For.
+if (process.env.NODE_ENV === 'production') app.set('trust proxy', 1);
+
+// Apply limits before parsing potentially large request bodies.
+app.use('/api/v1/auth', authRateLimiter);
+app.use('/api/v1/otp', authRateLimiter);
+app.use('/api/v1/payments', paymentRateLimiter);
+app.use('/api/v1', apiRateLimiter);
 
 app.use(express.static('public'));
 app.set('view engine', 'ejs');

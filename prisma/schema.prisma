@@ -5,127 +5,118 @@
 // Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
 
 generator client {
-  provider = "prisma-client-js"
-  output   = "../generated/prisma"
+  provider      = "prisma-client-js"
+  output        = "../generated/prisma"
   binaryTargets = ["native", "linux-musl-openssl-3.0.x"]
 }
 
 datasource db {
   provider = "mongodb"
   url      = env("DATABASE_URL")
-} 
-
+}
 
 //contents
 model Contents {
-  id                String   @id @default(auto()) @map("_id") @db.ObjectId
+  id                String @id @default(auto()) @map("_id") @db.ObjectId
   termsAndCondition String
   type              String @unique @default("main")
-  privacyPolicy     String 
+  privacyPolicy     String
   refundPolicy      String
   shippingPolicy    String
   aboutUs           String
   copyRight         String
-  footerText        String  
-  adminCommotions   Float @default(5)
-
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
-
- @@map("contents")
-} 
-
-model Faq {
-  id String @id @default(auto()) @map("_id") @db.ObjectId
-  question String 
-  answer String
-  categoryId String? @db.ObjectId
-  userId String? @db.ObjectId  
+  footerText        String
+  adminCommotions   Float  @default(5)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-
-  category Categories? @relation(fields: [categoryId], references: [id])
-  user User? @relation(fields: [userId], references: [id])
+  @@map("contents")
 }
 
+model Faq {
+  id         String  @id @default(auto()) @map("_id") @db.ObjectId
+  question   String
+  answer     String
+  categoryId String? @db.ObjectId
+  userId     String? @db.ObjectId
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  category Categories? @relation(fields: [categoryId], references: [id])
+  user     User?       @relation(fields: [userId], references: [id])
+}
 
 model User {
-  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  id          String     @id @default(auto()) @map("_id") @db.ObjectId
   name        String?
-  email       String   @unique
+  email       String     @unique
   bio         String?
   password    String?
   fcmToken    String?
-  status      status   @default(active)
-  loginWth   Login_With  @default(credentials)
-  role        Role     @default(user)
+  status      status     @default(active)
+  loginWth    Login_With @default(credentials)
+  role        Role       @default(user)
   profile     String?
   phoneNumber String?
-  isVerified  Boolean  @default(false)
-  customerId String?
-  avgRating   Float   @default(0)
-  totalReview Int     @default(0)
-  location   Json?
-  expireAt    DateTime? @default(now())
-  isDeleted   Boolean  @default(false)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  isVerified  Boolean    @default(false)
+  customerId  String?
+  avgRating   Float      @default(0)
+  totalReview Int        @default(0)
+  location    Json?
+  expireAt    DateTime?  @default(now())
+  isDeleted   Boolean    @default(false)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
 
-
-  verification     Verification? 
-  serviceProviderInfo     serviceProviderInfo? 
-  workSchedule     workSchedule[] 
-  deviceHistory    DeviceHistory[]  
-  notifications    Notification[]  
-  faq    Faq[]  
-  verificationRequests    VerificationRequest[]  
+  verification         Verification?
+  serviceProviderInfo  serviceProviderInfo?
+  workSchedule         workSchedule[]
+  deviceHistory        DeviceHistory[]
+  notifications        Notification[]
+  faq                  Faq[]
+  verificationRequests VerificationRequest[]
   // reviews    Reviews[]  
-  reviewsReceived Reviews[] @relation("UserReviews")
-  reviewsGiven    Reviews[] @relation("AuthorReviews")
+  reviewsReceived      Reviews[]             @relation("UserReviews")
+  reviewsGiven         Reviews[]             @relation("AuthorReviews")
   //bookings
-  bookings        Bookings[] @relation("UserBookings")
-  providerBookings Bookings[] @relation("ProviderBookings")
+  bookings             Bookings[]            @relation("UserBookings")
+  providerBookings     Bookings[]            @relation("ProviderBookings")
   //message
-  sendMessages  Messages[] @relation("sender")
-  receiverMessages  Messages[] @relation("receiver")
-  callSendHistory  CallHistory[] @relation("sender")
-  callReceiveHistory  CallHistory[] @relation("receiver")
-  participants Participants[] 
-  payments Payments[] 
-  providerPayments Payments[] @relation("ProviderPayments")
-  favorites Favorites[] 
-  address Address[] 
-  subscription Subscription[]
-
+  sendMessages         Messages[]            @relation("sender")
+  receiverMessages     Messages[]            @relation("receiver")
+  callSendHistory      CallHistory[]         @relation("sender")
+  callReceiveHistory   CallHistory[]         @relation("receiver")
+  participants         Participants[]
+  payments             Payments[]
+  providerPayments     Payments[]            @relation("ProviderPayments")
+  favorites            Favorites[]
+  address              Address[]
+  subscription         Subscription[]
 }
-
 
 model VerificationRequest {
-  id        String   @id @default(auto()) @map("_id") @db.ObjectId
-  userId    String   @db.ObjectId
-  reason    String?
-  status    VERIFICATION_STATUS  @default(pending)
+  id     String              @id @default(auto()) @map("_id") @db.ObjectId
+  userId String              @db.ObjectId
+  reason String?
+  status VERIFICATION_STATUS @default(pending)
 
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
- 
-
-  documents Documents[]
+  documents     Documents[]
   notifications Notification[]
-  user User @relation(fields: [userId], references: [id])
+  user          User           @relation(fields: [userId], references: [id])
 }
 
-model Documents{
-   id String @id @default(auto()) @map("_id") @db.ObjectId 
-   url String 
-   type VERIFICATION_DOCUMENT_TYPE?
-   requestId String? @db.ObjectId 
+model Documents {
+  id        String                      @id @default(auto()) @map("_id") @db.ObjectId
+  url       String
+  type      VERIFICATION_DOCUMENT_TYPE?
+  requestId String?                     @db.ObjectId
 
-
-   verificationRequest VerificationRequest? @relation(fields: [requestId], references: [id])
+  verificationRequest VerificationRequest? @relation(fields: [requestId], references: [id])
 }
 
 model DeviceHistory {
@@ -141,11 +132,11 @@ model DeviceHistory {
   user User @relation(fields: [userId], references: [id])
 }
 
-model Verification { 
-  userId    String   @map("_id") @db.ObjectId
+model Verification {
+  userId    String    @map("_id") @db.ObjectId
   otp       Int
   expiredAt DateTime?
-  status    Boolean  @default(false)
+  status    Boolean   @default(false)
 
   user User @relation(fields: [userId], references: [id])
 
@@ -153,279 +144,259 @@ model Verification {
 }
 
 model Address {
-  id          String   @id @default(auto()) @map("_id") @db.ObjectId
-  
-  userId      String   @db.ObjectId
-  user        User     @relation(fields: [userId], references: [id])
+  id String @id @default(auto()) @map("_id") @db.ObjectId
 
-
+  userId String @db.ObjectId
+  user   User   @relation(fields: [userId], references: [id])
 
   addressLine1 String?
   addressLine2 String?
 
-  city        String?
-  state       String?
-  postalCode  String?
-  country     String?
+  city       String?
+  state      String?
+  postalCode String?
+  country    String?
 
-  location    Json
+  location Json
 
-  isDefault   Boolean  @default(false)
-  isDeleted   Boolean  @default(false)
-
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  bookings Bookings[] 
-}
-
-model Favorites {
-  id String @id @default(auto()) @map("_id") @db.ObjectId
-  userId String @db.ObjectId
-  serviceProviderId String @db.ObjectId
-
-  user User @relation(fields: [userId], references: [id])
-  serviceProvider serviceProviderInfo @relation(fields: [serviceProviderId], references: [userId])
-}
-
-
-model Notification {
-  id String @id @default(auto()) @map("_id") @db.ObjectId
-  receiverId String? @db.ObjectId
-  bookingId String? @db.ObjectId 
-  verificationRequestId String? @db.ObjectId 
-  message String
-  description String?
-  isRead Boolean @default(false)
+  isDefault Boolean @default(false)
+  isDeleted Boolean @default(false)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-   user    User?     @relation(fields: [receiverId], references: [id]) 
-   booking    Bookings?     @relation(fields: [bookingId], references: [id]) 
-    verificationRequest    VerificationRequest?     @relation(fields: [verificationRequestId], references: [id])
+  bookings Bookings[]
+}
+
+model Favorites {
+  id                String @id @default(auto()) @map("_id") @db.ObjectId
+  userId            String @db.ObjectId
+  serviceProviderId String @db.ObjectId
+
+  user            User                @relation(fields: [userId], references: [id])
+  serviceProvider serviceProviderInfo @relation(fields: [serviceProviderId], references: [userId])
+}
+
+model Notification {
+  id                    String  @id @default(auto()) @map("_id") @db.ObjectId
+  receiverId            String? @db.ObjectId
+  bookingId             String? @db.ObjectId
+  verificationRequestId String? @db.ObjectId
+  message               String
+  description           String?
+  isRead                Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user                User?                @relation(fields: [receiverId], references: [id])
+  booking             Bookings?            @relation(fields: [bookingId], references: [id])
+  verificationRequest VerificationRequest? @relation(fields: [verificationRequestId], references: [id])
 }
 
 model workSchedule {
-  id          String   @id @default(auto()) @map("_id") @db.ObjectId
-  userId    String @db.ObjectId
-  day  Days  
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId    String   @db.ObjectId
+  day       Days
   startTime DateTime
-  endTime DateTime
-  status Boolean @default(true)  
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  endTime   DateTime
+  status    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-
-  user User @relation(fields: [userId], references: [id])  
+  user User @relation(fields: [userId], references: [id])
 }
 
+model serviceProviderInfo {
+  userId             String  @map("_id") @db.ObjectId
+  stripeAccountId    String?
+  palliativeCare     String?
+  bio                String?
+  coverImage         String?
+  perHourPrice       Float?  @default(0)
+  experienceOptionId String? @db.ObjectId
+  qualifiedCarer     String?
+  hasUsedFreeTrial   Boolean @default(false)
 
-model serviceProviderInfo { 
-  userId    String   @map("_id") @db.ObjectId 
-  stripeAccountId String?
-  palliativeCare String? 
-  bio String?
-  coverImage String? 
-  perHourPrice Float? @default(0)
-  experienceOptionId String? @db.ObjectId 
-  qualifiedCarer String?
-  hasUsedFreeTrial Boolean @default(false)
- 
-  
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
+  user       User               @relation(fields: [userId], references: [id])
+  experience ExperienceOptions? @relation(fields: [experienceOptionId], references: [id])
 
-  user User @relation(fields: [userId], references: [id]) 
-  experience ExperienceOptions? @relation(fields: [experienceOptionId], references: [id]) 
-   
-  images Images[]
-  specialistsIn SpecialistsIn[]
-  providerSubcategories  providerSubcategories[]
-  othersRequiredTasks OthersRequiredTasks[]
-  favorites Favorites[] 
+  images                Images[]
+  specialistsIn         SpecialistsIn[]
+  providerSubcategories providerSubcategories[]
+  othersRequiredTasks   OthersRequiredTasks[]
+  favorites             Favorites[]
 
   @@id([userId])
 }
 
 model ExperienceOptions {
-  id String @id @default(auto()) @map("_id") @db.ObjectId
-  value String 
+  id        String  @id @default(auto()) @map("_id") @db.ObjectId
+  value     String
   isDeleted Boolean @default(false)
 
- createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  serviceProviderInfo serviceProviderInfo[] 
+  serviceProviderInfo serviceProviderInfo[]
 }
 
-
-
-model SpecialistsIn{
-  id String @id @default(auto()) @map("_id") @db.ObjectId
-  userId String @db.ObjectId
+model SpecialistsIn {
+  id         String @id @default(auto()) @map("_id") @db.ObjectId
+  userId     String @db.ObjectId
   categoryId String @db.ObjectId
 
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-
-  serviceProviderInfo serviceProviderInfo @relation(fields: [userId], references: [userId]) 
-  category Categories @relation(fields: [categoryId], references: [id])
-
+  serviceProviderInfo serviceProviderInfo @relation(fields: [userId], references: [userId])
+  category            Categories          @relation(fields: [categoryId], references: [id])
 }
 
-model OthersRequiredTasks{
-  
-  id String @id @default(auto()) @map("_id") @db.ObjectId
-  userId String @db.ObjectId
+model OthersRequiredTasks {
+  id           String @id @default(auto()) @map("_id") @db.ObjectId
+  userId       String @db.ObjectId
   othersTaskId String @db.ObjectId
 
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   serviceProviderInfo serviceProviderInfo @relation(fields: [userId], references: [userId])
-  othersTask OthersTask @relation(fields: [othersTaskId], references: [id])
-  
+  othersTask          OthersTask          @relation(fields: [othersTaskId], references: [id])
 }
 
 model OthersTask {
-  id String @id @default(auto()) @map("_id") @db.ObjectId
-  value String 
-  isDeleted Boolean @default(false)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  value     String
+  isDeleted Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   othersRequiredTasks OthersRequiredTasks[]
-
 }
 
 model providerSubcategories {
-  id String @id @default(auto()) @map("_id") @db.ObjectId
+  id            String @id @default(auto()) @map("_id") @db.ObjectId
   subcategoryId String @db.ObjectId
-  userId String @db.ObjectId
+  userId        String @db.ObjectId
 
-  subcategory Subcategories? @relation(fields: [subcategoryId], references: [id])
-  user serviceProviderInfo? @relation(fields: [userId], references: [userId])
+  subcategory Subcategories?       @relation(fields: [subcategoryId], references: [id])
+  user        serviceProviderInfo? @relation(fields: [userId], references: [userId])
 }
 
-model Categories{
-  id String @id @default(auto()) @map("_id") @db.ObjectId
-  name String @unique
-  image String 
+model Categories {
+  id        String  @id @default(auto()) @map("_id") @db.ObjectId
+  name      String  @unique
+  image     String
   isDeleted Boolean @default(false)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-
-  specialistsIn SpecialistsIn[] 
+  specialistsIn SpecialistsIn[]
   subCategories Subcategories[]
-  faq Faq[]
+  faq           Faq[]
 }
 
-model Subcategories{
-  id String @id @default(auto()) @map("_id") @db.ObjectId
-  name String @unique
-  categoryId String @db.ObjectId
-  image String 
-  isDeleted Boolean @default(false)
+model Subcategories {
+  id         String  @id @default(auto()) @map("_id") @db.ObjectId
+  name       String  @unique
+  categoryId String  @db.ObjectId
+  image      String
+  isDeleted  Boolean @default(false)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  category Categories @relation(fields: [categoryId], references: [id])
-   providerSubcategory providerSubcategories[]
+  category            Categories              @relation(fields: [categoryId], references: [id])
+  providerSubcategory providerSubcategories[]
 
   @@map("SubCategories")
 }
 
 model Reviews {
-  id String @id @default(auto()) @map("_id") @db.ObjectId
-  rating Float 
-  review String
-  userId String @db.ObjectId
+  id       String @id @default(auto()) @map("_id") @db.ObjectId
+  rating   Float
+  review   String
+  userId   String @db.ObjectId
   authorId String @db.ObjectId
 
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   user   User @relation("UserReviews", fields: [userId], references: [id])
   author User @relation("AuthorReviews", fields: [authorId], references: [id])
- 
-  
-} 
-
-
-model Bookings {
-  id String @id @default(auto()) @map("_id") @db.ObjectId
-  userId String @db.ObjectId
-  addressId String? @db.ObjectId
-  providerId   String        @db.ObjectId
-  isPaid Boolean @default(false)
-  bookingType BOOKING_TYPE @default(one_time) 
-  status BookingStatus @default(pending)
-  price Float
-  startDate DateTime
-  endDate DateTime? // For weekly: when the recurring booking ends (null = unlimited)
-  totalHours Float
-  isActive Boolean @default(true)
-  nextBooking String? @db.ObjectId
-
-  isDeleted Boolean @default(false)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  user              User               @relation("UserBookings",    fields: [userId],    references: [id])
-  provider          User               @relation("ProviderBookings",fields: [providerId],references: [id])
-  address           Address?            @relation(fields: [addressId],references: [id])
-  bookingDays       BookingDays[]
-  notifications     Notification[]
-  payments          Payments[]
 }
 
+model Bookings {
+  id          String        @id @default(auto()) @map("_id") @db.ObjectId
+  userId      String        @db.ObjectId
+  addressId   String?       @db.ObjectId
+  providerId  String        @db.ObjectId
+  isPaid      Boolean       @default(false)
+  bookingType BOOKING_TYPE  @default(one_time)
+  status      BookingStatus @default(pending)
+  price       Float
+  startDate   DateTime
+  endDate     DateTime? // For weekly: when the recurring booking ends (null = unlimited)
+  totalHours  Float
+  isActive    Boolean       @default(true)
+  nextBooking String?       @db.ObjectId
 
- model BookingDays {
-  id            String          @id @default(auto()) @map("_id") @db.ObjectId
-  bookingId     String          @db.ObjectId
+  isDeleted Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user          User           @relation("UserBookings", fields: [userId], references: [id])
+  provider      User           @relation("ProviderBookings", fields: [providerId], references: [id])
+  address       Address?       @relation(fields: [addressId], references: [id])
+  bookingDays   BookingDays[]
+  notifications Notification[]
+  payments      Payments[]
+}
+
+model BookingDays {
+  id            String           @id @default(auto()) @map("_id") @db.ObjectId
+  bookingId     String           @db.ObjectId
   day           Days
-  startTime     DateTime        // absolute datetime (2025-01-13T14:15:00Z)
+  startTime     DateTime // absolute datetime (2025-01-13T14:15:00Z)
   endTime       DateTime
-  durationHours Int             // e.g. 2
+  durationHours Int // e.g. 2
   status        BookingDayStatus @default(pending)
 
-  createdAt     DateTime        @default(now())
-  updatedAt     DateTime        @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  booking   Bookings   @relation(fields: [bookingId], references: [id])
+  booking Bookings @relation(fields: [bookingId], references: [id])
 
   @@index([bookingId])
   @@index([day])
   @@map("booking_days")
-} 
+}
 
 model Payments {
-  id            String         @id @default(auto()) @map("_id") @db.ObjectId
-  userId        String         @db.ObjectId
+  id                String         @id @default(auto()) @map("_id") @db.ObjectId
+  userId            String         @db.ObjectId
   providerId        String         @db.ObjectId
-  bookingId     String         @db.ObjectId
-  amount        Float
-  status        PAYMENT_STATUS @default(pending)
-  transactionId String?        @unique
-  paymentMethod String?
-  nextPaymentDate DateTime?
-  adminParentage       Float?
-  providerParentage       Float?
+  bookingId         String         @db.ObjectId
+  amount            Float
+  status            PAYMENT_STATUS @default(pending)
+  transactionId     String?        @unique
+  paymentMethod     String?
+  nextPaymentDate   DateTime?
+  adminParentage    Float?
+  providerParentage Float?
 
   paidAt    DateTime?
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
 
-  user              User                              @relation(fields: [userId], references: [id])
-  provider          User                              @relation("ProviderPayments", fields: [providerId], references: [id])
-  booking           Bookings                          @relation(fields: [bookingId], references: [id]) 
+  user     User     @relation(fields: [userId], references: [id])
+  provider User     @relation("ProviderPayments", fields: [providerId], references: [id])
+  booking  Bookings @relation(fields: [bookingId], references: [id])
 
   @@index([providerId])
   @@index([bookingId])
@@ -435,115 +406,107 @@ model Payments {
 }
 
 model Chat {
-  id String @id @default(auto()) @map("_id") @db.ObjectId
-  status CHAT_STATUS @default(pending) 
+  id     String      @id @default(auto()) @map("_id") @db.ObjectId
+  status CHAT_STATUS @default(pending)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-
   participants Participants[]
-  messages Messages[]
+  messages     Messages[]
 }
 
 model Participants {
-  id String @id @default(auto()) @map("_id") @db.ObjectId
+  id     String @id @default(auto()) @map("_id") @db.ObjectId
   chatId String @db.ObjectId
   userId String @db.ObjectId
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-
   user User? @relation(fields: [userId], references: [id])
-  chat Chat @relation(fields: [chatId], references: [id])
+  chat Chat  @relation(fields: [chatId], references: [id])
 
   @@unique([chatId, userId])
-
 }
-
 
 model CallHistory {
-   id String @id @default(auto()) @map("_id") @db.ObjectId
-   senderId String @db.ObjectId
-   receiverId String @db.ObjectId 
-   type CALL_TYPE @default(audio_call)
-   channelName String @unique
-   status CALL_STATUS @default(ringing)
-   startedAt DateTime @default(now())
-   answeredAt DateTime?
-   endedAt DateTime?
-   duration Int?
-
+  id          String      @id @default(auto()) @map("_id") @db.ObjectId
+  senderId    String      @db.ObjectId
+  receiverId  String      @db.ObjectId
+  type        CALL_TYPE   @default(audio_call)
+  channelName String      @unique
+  status      CALL_STATUS @default(ringing)
+  startedAt   DateTime    @default(now())
+  answeredAt  DateTime?
+  endedAt     DateTime?
+  duration    Int?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-
-  sender User? @relation("sender", fields: [senderId], references: [id])
-  receiver User @relation("receiver",fields: [receiverId], references: [id])
+  sender   User? @relation("sender", fields: [senderId], references: [id])
+  receiver User  @relation("receiver", fields: [receiverId], references: [id])
 }
 
-
-model Messages{
-  id String @id @default(auto()) @map("_id") @db.ObjectId
-  text String?
-  seen Boolean @default(false)
-  chatId String @db.ObjectId
-  senderId String @db.ObjectId
-  receiverId String @db.ObjectId
+model Messages {
+  id         String  @id @default(auto()) @map("_id") @db.ObjectId
+  text       String?
+  seen       Boolean @default(false)
+  chatId     String  @db.ObjectId
+  senderId   String  @db.ObjectId
+  receiverId String  @db.ObjectId
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  chat    Chat @relation( fields: [chatId], references: [id])
-  sender    User @relation("sender", fields: [senderId], references: [id])
+  chat     Chat @relation(fields: [chatId], references: [id])
+  sender   User @relation("sender", fields: [senderId], references: [id])
   receiver User @relation("receiver", fields: [receiverId], references: [id])
 
   images Images[]
+
   @@index([senderId, receiverId])
   @@index([chatId])
   @@index([createdAt])
-
 }
 
 model Images {
-   id String @id @default(auto()) @map("_id") @db.ObjectId
-   url String 
-   messageId String? @db.ObjectId 
-   userId String? @db.ObjectId  
+  id        String  @id @default(auto()) @map("_id") @db.ObjectId
+  url       String
+  messageId String? @db.ObjectId
+  userId    String? @db.ObjectId
 
-   message Messages? @relation(fields: [messageId], references: [id])
-   serviceProviderInfo serviceProviderInfo? @relation(fields: [userId], references: [userId])
-
+  message             Messages?            @relation(fields: [messageId], references: [id])
+  serviceProviderInfo serviceProviderInfo? @relation(fields: [userId], references: [userId])
 }
 
 model webAboutUs {
-  id String @id @default(auto()) @map("_id") @db.ObjectId
-  image String
-  title String
-  content String
+  id         String @id @default(auto()) @map("_id") @db.ObjectId
+  image      String
+  title      String
+  content    String
   buttonText String
   buttonLink String
- 
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
 
 model services {
-  id String @id @default(auto()) @map("_id") @db.ObjectId
-  name String
+  id          String @id @default(auto()) @map("_id") @db.ObjectId
+  name        String
   description String
-  image String
+  image       String
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
 
 model ClientReview {
-  id String @id @default(auto()) @map("_id") @db.ObjectId
-  image String
-  name String
+  id     String @id @default(auto()) @map("_id") @db.ObjectId
+  image  String
+  name   String
   review String
   rating Float
 
@@ -551,38 +514,37 @@ model ClientReview {
   updatedAt DateTime @updatedAt
 }
 
-
 model Packages {
-  id String @id @map("_id") @default(auto()) @db.ObjectId
-  name String 
-  duration Int
-  productId String
-  description String 
-  price Float 
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  name          String
+  duration      Int
+  productId     String
+  description   String
+  price         Float
   isRecommended Boolean
-  createdAt DateTime @default(now())
-  updateAt DateTime @updatedAt
+  createdAt     DateTime @default(now())
+  updateAt      DateTime @updatedAt
 
   subscription Subscription[]
 }
 
 model Subscription {
-  id              String   @id @default(auto()) @map("_id") @db.ObjectId
-  packageId       String? @db.ObjectId
-  userId          String   @db.ObjectId
-  trnId           String?
-  expiresAt       DateTime?
-  graceEndsAt     DateTime?
-  purchasedAt     DateTime?
-  isPaid          Boolean  @default(false)
-  isActive        Boolean  @default(false)
-  isExpired       Boolean  @default(false)
-  productId       String?
+  id          String    @id @default(auto()) @map("_id") @db.ObjectId
+  packageId   String?   @db.ObjectId
+  userId      String    @db.ObjectId
+  trnId       String?
+  expiresAt   DateTime?
+  graceEndsAt DateTime?
+  purchasedAt DateTime?
+  isPaid      Boolean   @default(false)
+  isActive    Boolean   @default(false)
+  isExpired   Boolean   @default(false)
+  productId   String?
 
   createdAt DateTime @default(now())
-  updateAt DateTime @updatedAt
+  updateAt  DateTime @updatedAt
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user    User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   package Packages? @relation(fields: [packageId], references: [id], onDelete: Cascade)
 
   @@index([userId, isActive, expiresAt])
@@ -590,17 +552,15 @@ model Subscription {
 }
 
 model SupportMessage {
-  id String @id @default(auto()) @map("_id") @db.ObjectId
-  name String
-  email String
+  id      String @id @default(auto()) @map("_id") @db.ObjectId
+  name    String
+  email   String
   subject String
   message String
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
-
- 
 
 // ─── Enums ───
 enum VERIFICATION_DOCUMENT_TYPE {
@@ -615,19 +575,21 @@ enum BookingDayStatus {
   confirmed
   completed
   canceled
-} 
+}
 
 enum VERIFICATION_STATUS {
   pending
   verified
   rejected
 }
+
 enum Login_With {
   credentials
   google
   facebook
   apple
 }
+
 enum SlotStatus {
   available
   booked
@@ -642,15 +604,22 @@ enum RecurringStatus {
   skipped
 }
 
-
 enum BookingStatus {
   pending
   requested
-  accepted 
+  accepted
   ongoing
   complete
+  expired
   canceled
 }
+
+// enum PAYMENT_STATUS {
+// pending
+// paid
+// canceled
+// manual
+// }
 
 enum BOOKING_TYPE {
   one_time
@@ -661,28 +630,28 @@ enum status {
   active
   blocked
 }
-enum CHAT_STATUS {
- pending
- accepted
- blocked
-}
- 
 
-enum PAYMENT_STATUS { 
+enum CHAT_STATUS {
+  pending
+  accepted
+  blocked
+}
+
+enum PAYMENT_STATUS {
   pending
   paid
   refunded
   canceled
-
 }
+
 enum Days {
   Mon
   Tue
-  Wed  
-  Thu   
-  Fri   
-  Sat   
-  Sun  
+  Wed
+  Thu
+  Fri
+  Sat
+  Sun
 }
 
 enum CALL_TYPE {
@@ -698,7 +667,7 @@ enum CALL_STATUS {
   completed
   missed
 }
- 
+
 enum Role {
   admin
   sub_admin
@@ -706,4 +675,3 @@ enum Role {
   user
   service_provider
 }
-

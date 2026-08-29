@@ -1,180 +1,245 @@
-// /**
-//  * queues/booking.queue.ts
-//  * BullMQ queue + worker for weekly Stripe recurring payments.
-//  * Uses the same `connection` object from your redis/index.ts
-//  */
+import { Worker, type Job } from 'bullmq';
+import {
+  BookingStatus,
+  PAYMENT_STATUS,
+} from '../../../generated/prisma/index.js';
+import StripeService from '@app/class/string.class.js';
+import { toFixed2 } from '@app/module/bookings/bookings.constants.js';
+import { connection, notificationQueue } from '@app/redis/index.js';
+import prisma from '@app/shared/prisma.js';
+import moment from 'moment';
 
-// import { Queue, Worker, type Job } from 'bullmq';
-// import prisma from '@app/shared/prisma.js';
-// import { connection, pubClient } from '@app/redis/index.js';
-// import colors from 'colors';
-// import StripeService from '@app/class/string.class.js';
+type WeeklyRenewalJob = { bookingId: string };
 
-// const stripe = StripeService.getStripe();
+const enqueueNotification = async (data: Record<string, string>) => {
+  try {
+    await notificationQueue.add('new_notification', { data });
+  } catch (error) {
+    console.error('[WeeklyRenewal] Failed to enqueue notification:', error);
+  }
+};
 
-// export const bookingQueue = new Queue('booking_payments', {
-//   connection,
-//   defaultJobOptions: {
-//     attempts: 3,
-//     backoff: {
-//       type: 'exponential',
-//       delay: 1000 * 60 * 5, // 5min → 10min → 20min
-//     },
-//     removeOnComplete: true,
-//     removeOnFail: false,
-//   },
-// });
+const activateNextBooking = (currentBookingId: string, nextBookingId: string) =>
+  prisma.$transaction([
+    prisma.bookings.update({
+      where: { id: currentBookingId },
+      data: { status: BookingStatus.expired, isActive: false },
+    }),
+    prisma.bookings.update({
+      where: { id: nextBookingId },
+      data: {
+        status: BookingStatus.requested,
+        isActive: true,
+        isPaid: true,
+      },
+    }),
+  ]);
 
-// // ─── Worker ───────────────────────────────────────────────────────────────────
-// export const bookingWorker = new Worker(
-//   'booking_payments',
-//   async (job: Job) => {
-//     const { bookingId, stripeCustomerId, paymentMethodId } = job.data;
+const processWeeklyRenewal = async (job: Job<WeeklyRenewalJob>) => {
+  const currentBooking = await prisma.bookings.findUnique({
+    where: { id: job.data.bookingId },
+    include: { user: { select: { customerId: true } } },
+  });
 
-//     // ── 1. Load booking with next pending schedule ──────────────────────────
-//     const booking = await prisma.bookings.findUnique({
-//       where: { id: bookingId },
-//       include: {
-//         recurringSchedule: {
-//           where: { status: 'pending' },
-//           orderBy: { weekNumber: 'asc' },
-//           take: 1,
-//         },
-//       },
-//     });
+  if (
+    !currentBooking ||
+    currentBooking.bookingType !== 'weekly' ||
+    currentBooking.isDeleted ||
+    currentBooking.status === BookingStatus.canceled ||
+    currentBooking.status === BookingStatus.expired ||
+    !currentBooking.isActive ||
+    !currentBooking.nextBooking
+  ) {
+    return { skipped: true, reason: 'booking_not_renewable' };
+  }
 
-//     // Booking inactive হলে job remove করো
-//     if (!booking || booking.status === 'canceled' || booking.isDeleted) {
-//       await bookingQueue.remove(`weekly-${bookingId}`);
-//       return { skipped: true, reason: 'booking_inactive' };
-//     }
+  if (!currentBooking.endDate || currentBooking.endDate > new Date()) {
+    return { skipped: true, reason: 'booking_not_due' };
+  }
 
-//     const nextSchedule = booking.recurringSchedule[0];
+  const nextBooking = await prisma.bookings.findUnique({
+    where: { id: currentBooking.nextBooking },
+    include: { bookingDays: true },
+  });
+  if (!nextBooking || nextBooking.isDeleted) {
+    throw new Error('Next weekly booking not found');
+  }
 
-//     // সব schedule শেষ → booking complete
-//     if (!nextSchedule) {
-//       await prisma.bookings.update({
-//         where: { id: bookingId },
-//         data: { status: 'complete' },
-//       });
-//       await bookingQueue.remove(`weekly-${bookingId}`);
-//       return { done: true };
-//     }
+  // If Stripe succeeded before a process crash, never charge a second time.
+  const paidPayment = await prisma.payments.findFirst({
+    where: { bookingId: nextBooking.id, status: PAYMENT_STATUS.paid },
+  });
+  if (paidPayment || nextBooking.isPaid) {
+    await activateNextBooking(currentBooking.id, nextBooking.id);
+    return { success: true, alreadyPaid: true };
+  }
 
-//     // ── 2. Idempotency guard — processing এ mark করো ───────────────────────
-//     await prisma.recurringSchedule.update({
-//       where: { id: nextSchedule.id },
-//       data: { status: 'processing' },
-//     });
+  if (!currentBooking.user.customerId) {
+    throw new Error('Stripe customer not found');
+  }
 
-//     // ── 3. Payment record create ────────────────────────────────────────────
-//     const payment = await prisma.payments.create({
-//       data: {
-//         userId: booking.userId,
-//         bookingId,
-//         amount: nextSchedule.amount,
-//         status: 'pending',
-//         paymentMethod: 'stripe',
-//         isRecurring: true,
-//       },
-//     });
+  const stripe = StripeService.getStripe();
+  const customer = await stripe.customers.retrieve(
+    currentBooking.user.customerId,
+  );
+  if (customer.deleted) throw new Error('Stripe customer has been deleted');
 
-//     // ── 4. Stripe charge ────────────────────────────────────────────────────
-//     const paymentIntent = await stripe.paymentIntents.create({
-//       amount: Math.round(nextSchedule.amount * 100),
-//       currency: 'usd',
-//       customer: stripeCustomerId,
-//       payment_method: paymentMethodId,
-//       confirm: true,
-//       automatic_payment_methods: { enabled: true, allow_redirects: 'never' },
-//       metadata: {
-//         bookingId,
-//         paymentId: payment.id,
-//         weekNumber: String(nextSchedule.weekNumber),
-//       },
-//     });
+  const paymentMethod = customer.invoice_settings.default_payment_method;
+  if (!paymentMethod) throw new Error('No saved payment method found');
+  const paymentMethodId =
+    typeof paymentMethod === 'string' ? paymentMethod : paymentMethod.id;
 
-//     // ── 5. Update records ───────────────────────────────────────────────────
-//     if (paymentIntent.status === 'succeeded') {
-//       await prisma.$transaction([
-//         prisma.payments.update({
-//           where: { id: payment.id },
-//           data: {
-//             status: 'paid',
-//             transactionId: paymentIntent.id,
-//             paidAt: new Date(),
-//           },
-//         }),
-//         prisma.recurringSchedule.update({
-//           where: { id: nextSchedule.id },
-//           data: {
-//             status: 'paid',
-//             paymentId: payment.id,
-//             processedAt: new Date(),
-//           },
-//         }),
-//       ]);
-//     } else {
-//       // Webhook final status handle করবে
-//       await prisma.payments.update({
-//         where: { id: payment.id },
-//         data: { transactionId: paymentIntent.id },
-//       });
-//     }
+  const contents = await prisma.contents.findFirst({ where: { type: 'main' } });
+  const adminAmount = toFixed2(
+    ((contents?.adminCommotions ?? 5) * nextBooking.price) / 100,
+  );
+  const providerAmount = toFixed2(nextBooking.price - adminAmount);
 
-//     // ── 6. Invalidate booking cache ─────────────────────────────────────────
-//     await pubClient.del(`booking:${bookingId}`);
+  let payment = await prisma.payments.findFirst({
+    where: { bookingId: nextBooking.id, status: PAYMENT_STATUS.pending },
+  });
+  if (!payment) {
+    payment = await prisma.payments.create({
+      data: {
+        userId: nextBooking.userId,
+        providerId: nextBooking.providerId,
+        bookingId: nextBooking.id,
+        amount: nextBooking.price,
+        adminParentage: adminAmount,
+        providerParentage: providerAmount,
+        nextPaymentDate: nextBooking.endDate,
+      },
+    });
+  }
 
-//     return {
-//       success: paymentIntent.status === 'succeeded',
-//       weekNumber: nextSchedule.weekNumber,
-//       paymentIntentId: paymentIntent.id,
-//     };
-//   },
-//   { connection },
-// );
+  const attempt = job.attemptsMade + 1;
+  const paymentIntent = await stripe.paymentIntents.create(
+    {
+      amount: Math.round(payment.amount * 100),
+      currency: 'usd',
+      customer: currentBooking.user.customerId,
+      payment_method: paymentMethodId,
+      off_session: true,
+      confirm: true,
+      metadata: {
+        paymentId: payment.id,
+        bookingId: nextBooking.id,
+        previousBookingId: currentBooking.id,
+        renewalAttempt: String(attempt),
+      },
+    },
+    {
+      idempotencyKey: `weekly-renewal-${currentBooking.id}-${nextBooking.id}-${attempt}`,
+    },
+  );
 
-// // ─── Worker Events ────────────────────────────────────────────────────────────
-// bookingWorker.on('completed', (job, result) => {
-//   console.log(colors.green(`[BookingQueue] ✅ Job ${job.id} done`), result);
-// });
+  if (paymentIntent.status !== 'succeeded') {
+    throw new Error(`Stripe payment status: ${paymentIntent.status}`);
+  }
 
-// bookingWorker.on('failed', async (job, err) => {
-//   console.error(
-//     colors.red(`[BookingQueue] ❌ Job ${job?.id} failed:`),
-//     err.message,
-//   );
+  await prisma.$transaction(async tx => {
+    await tx.payments.update({
+      where: { id: payment.id },
+      data: {
+        status: PAYMENT_STATUS.paid,
+        transactionId: paymentIntent.id,
+        paymentMethod: paymentMethodId,
+        paidAt: new Date(),
+      },
+    });
+    await tx.bookings.update({
+      where: { id: currentBooking.id },
+      data: { status: BookingStatus.expired, isActive: false },
+    });
+    await tx.bookings.update({
+      where: { id: nextBooking.id },
+      data: {
+        status: BookingStatus.requested,
+        isActive: true,
+        isPaid: true,
+      },
+    });
 
-//   if (!job) return;
-//   const { bookingId } = job.data;
-//   const maxAttempts = job.opts.attempts ?? 3;
+    // Keep an ongoing weekly subscription one week ahead. The initial checkout
+    // creates a short chain; this extends it whenever its tail is reached.
+    if (!nextBooking.nextBooking) {
+      const followingStart =
+        nextBooking.endDate ??
+        moment(nextBooking.startDate).add(1, 'week').toDate();
+      const followingBooking = await tx.bookings.create({
+        data: {
+          userId: nextBooking.userId,
+          providerId: nextBooking.providerId,
+          addressId: nextBooking.addressId,
+          price: nextBooking.price,
+          startDate: followingStart,
+          endDate: moment(followingStart).add(1, 'week').toDate(),
+          totalHours: nextBooking.totalHours,
+          bookingType: 'weekly',
+          isActive: false,
+          bookingDays: {
+            create: nextBooking.bookingDays.map(day => ({
+              day: day.day,
+              startTime: moment(day.startTime).add(1, 'week').toDate(),
+              endTime: moment(day.endTime).add(1, 'week').toDate(),
+              durationHours: day.durationHours,
+            })),
+          },
+        },
+      });
+      await tx.bookings.update({
+        where: { id: nextBooking.id },
+        data: { nextBooking: followingBooking.id },
+      });
+    }
+  });
 
-//   // সব retry শেষ হলে — fail mark + user notify
-//   if (job.attemptsMade >= maxAttempts) {
-//     const schedule = await prisma.recurringSchedule.findFirst({
-//       where: { bookingId, status: 'processing' },
-//     });
-//     if (schedule) {
-//       await prisma.recurringSchedule.update({
-//         where: { id: schedule.id },
-//         data: { status: 'failed' },
-//       });
-//     }
+  await Promise.all([
+    enqueueNotification({
+      receiverId: nextBooking.userId,
+      bookingId: nextBooking.id,
+      message: 'Weekly Payment Successful',
+      description: `Your weekly payment of $${payment.amount.toFixed(2)} was successful.`,
+    }),
+    enqueueNotification({
+      receiverId: nextBooking.providerId,
+      bookingId: nextBooking.id,
+      message: 'Weekly Booking Payment Received',
+      description:
+        'The customer has successfully paid for the next booking week.',
+    }),
+  ]);
 
-//     const booking = await prisma.bookings.findUnique({
-//       where: { id: bookingId },
-//       select: { userId: true },
-//     });
-//     if (booking) {
-//       await prisma.notification.create({
-//         data: {
-//           receiverId: booking.userId,
-//           bookingId,
-//           message: 'Weekly payment failed',
-//           description:
-//             'We could not process your weekly payment after multiple attempts. Please update your payment method.',
-//         },
-//       });
-//     }
-//   }
-// });
+  return { success: true, paymentIntentId: paymentIntent.id };
+};
+
+const bookingWorker = new Worker<WeeklyRenewalJob>(
+  'booking_payments',
+  processWeeklyRenewal,
+  { connection },
+);
+
+bookingWorker.on('completed', (job, result) => {
+  console.log(`[WeeklyRenewal] Job ${job.id} completed`, result);
+});
+
+bookingWorker.on('failed', async (job, error) => {
+  console.error(`[WeeklyRenewal] Job ${job?.id} failed:`, error.message);
+  if (!job || job.attemptsMade < (job.opts.attempts ?? 3)) return;
+
+  const booking = await prisma.bookings.findUnique({
+    where: { id: job.data.bookingId },
+    select: { id: true, userId: true, nextBooking: true },
+  });
+  if (!booking) return;
+
+  await enqueueNotification({
+    receiverId: booking.userId,
+    bookingId: booking.nextBooking ?? booking.id,
+    message: 'Weekly Payment Failed',
+    description:
+      'We could not process your weekly payment after 3 attempts. Please update your payment method.',
+  });
+});
+
+export default bookingWorker;
